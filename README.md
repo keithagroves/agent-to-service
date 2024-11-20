@@ -15,11 +15,7 @@ graph LR
     A -->|User Input Request| U
     U -->|Provide Missing Variables| A
     A -->|Execute Raw Requests| S1[Service 1]
-    A -->|Execute Raw Requests| S2[Service 2]
-    A -->|Execute Raw Requests| S3[Service 3]
     S1 -->|Response| A
-    S2 -->|Response| A
-    S3 -->|Response| A
     A -->|Final Response| U
 
     style U fill:#f9f,stroke:#333,stroke-width:4px
@@ -27,8 +23,6 @@ graph LR
     style B fill:#dfd,stroke:#333,stroke-width:2px
     style V fill:#fdd,stroke:#333,stroke-width:2px
     style S1 fill:#ddd,stroke:#333,stroke-width:2px
-    style S2 fill:#ddd,stroke:#333,stroke-width:2px
-    style S3 fill:#ddd,stroke:#333,stroke-width:2px
 ```
 
 ## Problem
