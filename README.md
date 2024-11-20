@@ -89,6 +89,47 @@ requestSequence:
    - Get execution sequences
    - Execute raw requests
 
+
+## Protocol Specification
+
+### Service Discovery Document
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| serviceName | string | Name of the service |
+| serviceDescription | string | Brief description of what the service does |
+| capabilities | array | List of capabilities the service provides |
+| metadata | object | Additional service information |
+
+#### Capability Object
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| name | string | Name of the capability |
+| description | string | Description of what the capability does |
+| executionPath | string | Path to fetch execution sequence |
+| requiredScopes | array[string] | OAuth scopes needed for this capability |
+| parameters | array[Parameter] | Optional. List of required parameters |
+
+### Execution Sequence Document
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| path | string | Path identifier for this execution sequence |
+| description | string | Description of what this sequence does |
+| requestSequence | array[Request] | Ordered list of HTTP requests to execute |
+| variables | object | Map of variable names to descriptions |
+| expectedSequence | array[string] | Required. Order of request IDs to execute |
+
+#### Request Object
+
+| Field Name | Type | Description |
+|------------|------|-------------|
+| id | string | Unique identifier for this request |
+| description | string | Description of what this request does |
+| raw | string | Raw HTTP request with variable templates |
+
+
 ## Getting Started
 
 [Coming Soon]
