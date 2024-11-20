@@ -1,11 +1,22 @@
 # Agent to Service Protocol (A2S)
 
-A standardized protocol enabling AI agents to discover and execute web service capabilities through raw **HTTPS** requests, eliminating the need for parsing documentation or websites.
+![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+
+A standardized protocol enabling AI agents to discover and execute web service capabilities through raw HTTP requests over secure connections, eliminating the need for parsing documentation or websites.
+
+```mermaid
+graph LR
+    A[AI Agent] --> B[A2S Registry]
+    B --> C[Service Capabilities]
+    C --> D[Raw Request Sequences]
+    A --> D
+    D --> E[Service Execution]
+```
 
 ## Problem
 
 Currently, AI agents struggle to interact with web services because they must:
-
 - Parse complex websites or API documentation
 - Handle different authentication methods
 - Navigate varying API structures
@@ -15,16 +26,15 @@ Currently, AI agents struggle to interact with web services because they must:
 ## Solution
 
 A2S provides a central registry of services with:
-
 1. Standardized capability discovery
-2. Pre-configured raw **HTTPS** request sequences
+2. Pre-configured raw HTTP request sequences
 3. Clear variable templates for customization
 
-**Example Service:**
-
+### Example Service
 ```yaml
-serviceName: "Dominos Pizza"
+serviceName: "PizzaCo"
 serviceDescription: "Online pizza ordering and delivery service"
+domain: "api.pizzaco.example"
 capabilities:
   - name: "Order Pizza"
     description: "Create a new pizza delivery order"
@@ -36,8 +46,7 @@ capabilities:
     requiredScopes: ["specials:read"]
 ```
 
-**Example Execution Path:**
-
+### Example Execution Path
 ```yaml
 path: "/execution/order-pizza"
 description: "Request sequence for ordering a pizza"
@@ -45,8 +54,8 @@ requestSequence:
   - id: "auth"
     description: "Authenticate with the service"
     raw: |
-      POST https://api.dominos.com/auth HTTP/1.1
-      Host: api.dominos.com
+      POST /auth HTTP/1.1
+      Host: api.pizzaco.example
       Content-Type: application/json
 
       {
@@ -56,10 +65,10 @@ requestSequence:
   - id: "place-order"
     description: "Submit the pizza order"
     raw: |
-      POST https://api.dominos.com/orders HTTP/1.1
-      Host: api.dominos.com
-      Authorization: Bearer ${AUTH_TOKEN}
+      POST /orders HTTP/1.1
+      Host: api.pizzaco.example
       Content-Type: application/json
+      Authorization: Bearer ${AUTH_TOKEN}
 
       {
         "orderItems": [{
@@ -69,30 +78,6 @@ requestSequence:
       }
 ```
 
-## Features
-
-- **Registry**: Single source for discovering service capabilities
-- **Raw Requests**: Pre-configured HTTPS requests ready for execution
-- **Variable Templates**: Clear system for request customization
-- **Sequence Management**: Handles multi-step processes and dependencies
-- **Future-Ready**: Design supports eventual migration to `.well-known` endpoints
-
-## Architecture
-
-1. **Registry Service**
-   - Maintains service catalog
-   - Provides capability discovery
-   - Returns execution sequences
-
-2. **Service Integration**
-   - Services register their capabilities
-   - Provide request sequences
-   - Optional: Future support for `.well-known` endpoints
-
-3. **Agent Integration**
-   - Query available services
-   - Get execution sequences
-   - Execute raw requests over HTTPS
 
 ## Protocol Specification
 
@@ -102,6 +87,7 @@ requestSequence:
 |--------------------|--------|------------------------------------------------|
 | serviceName        | string | Name of the service                            |
 | serviceDescription | string | Brief description of what the service does     |
+| domain            | string | Base domain for all requests in this service   |
 | capabilities       | array  | List of capabilities the service provides      |
 | metadata           | object | Additional service information                 |
 
@@ -121,7 +107,7 @@ requestSequence:
 |------------------|----------------|-----------------------------------------------|
 | path             | string         | Path identifier for this execution sequence   |
 | description      | string         | Description of what this sequence does        |
-| requestSequence  | array[Request] | Ordered list of HTTPS requests to execute     |
+| requestSequence  | array[Request] | Ordered list of HTTP requests to execute     |
 | variables        | object         | Map of variable names to descriptions         |
 | expectedSequence | array[string]  | Required. Order of request IDs to execute     |
 
@@ -131,34 +117,59 @@ requestSequence:
 |-------------|--------|-----------------------------------------------|
 | id          | string | Unique identifier for this request            |
 | description | string | Description of what this request does         |
-| raw         | string | Raw HTTPS request with variable templates     |
+| raw         | string | Raw HTTP request with variable templates      |
 
 ## Security Considerations
 
-To ensure secure communication between AI agents and web services, the A2S protocol mandates the use of HTTPS for all data transmission. Agents and services must adhere to the following:
+The A2S protocol enforces several security requirements to ensure safe communication between agents and services:
 
-- **Use of HTTPS:**
-  - All requests and responses must be transmitted over HTTPS.
-  - Services must have valid SSL/TLS certificates signed by a trusted Certificate Authority (CA).
+- **Transport Security:**
+  - All communications must use HTTPS
+  - TLS 1.2 or higher is required
+  - Valid SSL/TLS certificates from trusted CAs must be used
+  - Certificate verification is mandatory
 
-- **TLS Requirements:**
-  - Support for TLS 1.2 or higher is required to maintain strong encryption standards.
+- **Domain Requirements:**
+  - All requests in a sequence must be to the same domain specified in the service definition
+  - Cross-domain requests are not allowed within a single sequence
+  - The Host header in requests must match the service's domain
 
-- **Certificate Verification:**
-  - Agents must verify the service's SSL/TLS certificate and handle any exceptions or errors appropriately.
-  - Self-signed certificates are discouraged unless there's a mutual agreement and additional security measures in place.
+- **Data Protection:**
+  - Sensitive variables (e.g., `${CLIENT_SECRET}`, `${AUTH_TOKEN}`) must be handled securely
+  - Tokens should be stored securely and disposed of properly
 
-- **Handling Sensitive Data:**
-  - Sensitive variables like `${CLIENT_SECRET}` and `${AUTH_TOKEN}` should be securely managed and not logged or exposed.
-  - Agents should store tokens securely and dispose of them properly after use.
+## Features
 
-## Getting Started
+- **Registry**: Single source for discovering service capabilities
+- **Raw Requests**: Pre-configured HTTP requests ready for execution
+- **Variable Templates**: Clear system for request customization
+- **Sequence Management**: Handles multi-step processes and dependencies
+- **Future-Ready**: Design supports eventual migration to `.well-known` endpoints
 
-[Coming Soon]
+## Architecture
 
-- How to register a service
-- How to query capabilities
-- How to execute sequences over HTTPS
+1. **Registry Service**
+   - Maintains service catalog
+   - Provides capability discovery
+   - Returns execution sequences
+
+2. **Service Integration**
+   - Services register their capabilities
+   - Provide request sequences
+   - Optional: Future support for `.well-known` endpoints
+
+3. **Agent Integration**
+   - Query available services
+   - Get execution sequences
+   - Execute raw requests
+
+## Development Status
+
+The project is in alpha stage. Core features are being developed:
+- Central registry implementation
+- Service registration process
+- Basic request execution
+- Initial documentation
 
 ## Future Enhancements
 
@@ -171,7 +182,6 @@ To ensure secure communication between AI agents and web services, the A2S proto
 ## Contributing
 
 We welcome contributions! Areas we need help with:
-
 - Protocol specification
 - Reference implementations
 - Service integrations
@@ -185,5 +195,3 @@ Contributions are welcome! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
