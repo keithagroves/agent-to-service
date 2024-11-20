@@ -3,144 +3,316 @@
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-A standardized protocol enabling AI agents to discover and execute web service capabilities through raw HTTP requests over secure connections, eliminating the need for parsing documentation or websites.
+A standardized protocol enabling AI agents to discover and execute web service capabilities through natural language understanding and raw HTTP requests. A2S helps agents efficiently coordinate multiple services to solve complex user requests.
 
 ```mermaid
 graph LR
-    A[AI Agent] --> B[A2S Registry]
-    B --> C[Service Capabilities]
-    C --> D[Raw Request Sequences]
-    A --> D
-    D --> E[Service Execution]
+    U[User] -->|Natural Language Request| A[AI Agent]
+    A -->|Query Services| B[A2S Registry]
+    B -->|Return Relevant Services & Capabilities| A
+    A -->|Variable Resolution| V[Variable Store]
+    V -->|Get Stored Variables| A
+    A -->|User Input Request| U
+    U -->|Provide Missing Variables| A
+    A -->|Execute Raw Requests| S1[Service 1]
+    A -->|Execute Raw Requests| S2[Service 2]
+    A -->|Execute Raw Requests| S3[Service 3]
+    S1 -->|Response| A
+    S2 -->|Response| A
+    S3 -->|Response| A
+    A -->|Final Response| U
+
+    style U fill:#f9f,stroke:#333,stroke-width:4px
+    style A fill:#bbf,stroke:#333,stroke-width:2px
+    style B fill:#dfd,stroke:#333,stroke-width:2px
+    style V fill:#fdd,stroke:#333,stroke-width:2px
+    style S1 fill:#ddd,stroke:#333,stroke-width:2px
+    style S2 fill:#ddd,stroke:#333,stroke-width:2px
+    style S3 fill:#ddd,stroke:#333,stroke-width:2px
 ```
 
 ## Problem
 
 Currently, AI agents struggle to interact with web services because they must:
-- Parse complex websites or API documentation
+- Translate natural language to API calls
+- Navigate complex service documentation
+- Coordinate multiple services for single tasks
 - Handle different authentication methods
-- Navigate varying API structures
-- Understand multi-step processes
-- Keep up with API changes
+- Track user credentials and preferences
+- Manage sequential and dependent operations
 
 ## Solution
 
-A2S provides a central registry of services with:
-1. Standardized capability discovery
-2. Pre-configured raw HTTP request sequences
-3. Clear variable templates for customization
+A2S provides a central registry that helps agents:
+1. Discover relevant services from natural language requests
+2. Access pre-configured HTTP requests
+3. Coordinate multi-service operations
+4. Manage variables and credentials securely
 
-### Example Service
+### Example: Single-Service Flow
+
+User: "What's the weather for this Thursday?"
+
 ```yaml
-serviceName: "PizzaCo"
-serviceDescription: "Online pizza ordering and delivery service"
-domain: "api.pizzaco.com"
-capabilities:
-  - name: "Order Pizza"
-    description: "Create a new pizza delivery order"
-    executionPath: "/execution/order-pizza"
-    requiredScopes: ["order:write"]
-  - name: "See Specials"
-    description: "List available promotions"
-    executionPath: "/execution/specials"
-    requiredScopes: ["specials:read"]
+# Registry Response
+services:
+  - name: "WeatherService"
+    description: "Global weather data and forecasts"
+    domain: "api.weather.example"
+    relevance_score: 0.92
+    relevant_capabilities:
+      - name: "Forecast Weather"
+        description: "Get weather forecast for a specific date"
+        relevance_score: 0.95
+        requiredVariables: ["API_KEY"]
+        tempVariables:
+          DATE:
+            type: "date"
+            description: "Forecast date"
+          LAT:
+            type: "number"
+            description: "Latitude coordinate"
+          LON:
+            type: "number"
+            description: "Longitude coordinate"
+        request: |
+          GET /v1/forecast HTTP/1.1
+          Host: api.weather.example
+          Authorization: Bearer ${API_KEY}
+          
+          ?date=${DATE}&lat=${LAT}&lon=${LON}
 ```
 
-### Example Execution Path
+### Example: Multi-Service Flow
+
+User: "Plan me a weekend trip to Seattle - I need flights, hotel, and want good weather for sightseeing. Budget is $1000."
+
 ```yaml
-path: "/execution/order-pizza"
-description: "Request sequence for ordering a pizza"
-requestSequence:
-  - id: "auth"
-    description: "Authenticate with the service"
-    raw: |
-      POST /auth HTTP/1.1
-      Host: api.pizzaco.com
-      Content-Type: application/json
+# First Registry Query - Travel Services
+services:
+  - name: "FlightService"
+    description: "Flight booking service"
+    relevance_score: 0.94
+    relevant_capabilities:
+      - name: "Search Flights"
+        description: "Find available flights between cities"
+        tempVariables:
+          FROM:
+            type: "airport_code"
+          TO:
+            type: "airport_code"
+          DATE_OUT:
+            type: "date"
+          MAX_PRICE:
+            type: "number"
 
-      {
-        "clientId": "${CLIENT_ID}",
-        "clientSecret": "${CLIENT_SECRET}"
-      }
-  - id: "place-order"
-    description: "Submit the pizza order"
-    raw: |
-      POST /orders HTTP/1.1
-      Host: api.pizzaco.com
-      Content-Type: application/json
-      Authorization: Bearer ${AUTH_TOKEN}
+  - name: "HotelService"
+    description: "Hotel booking service"
+    relevance_score: 0.92
+    relevant_capabilities:
+      - name: "Search Hotels"
+        description: "Find available hotels in a city"
+        tempVariables:
+          CITY:
+            type: "string"
+          CHECK_IN:
+            type: "date"
+          MAX_RATE:
+            type: "number"
 
-      {
-        "orderItems": [{
-          "size": "${SIZE}",
-          "toppings": ${TOPPINGS_ARRAY}
-        }]
-      }
+# Second Registry Query - Weather & Activities
+services:
+  - name: "WeatherService"
+    description: "Weather forecasts"
+    relevant_capabilities:
+      - name: "Extended Forecast"
+        description: "Multi-day weather forecast"
+
+  - name: "TouristActivities"
+    description: "Sightseeing and attractions"
+    relevant_capabilities:
+      - name: "Search Activities"
+        description: "Find weather-appropriate activities"
 ```
+
 
 ```mermaid
 sequenceDiagram
+    participant User
     participant Agent as AI Agent
-    participant Search as Web Search
-    participant PizzaCo as PizzaCo.com
-    participant API as PizzaCo API
+    participant Registry as A2S Registry
+    participant VarStore as Variable Store
+    participant APIs as Services
+    
+    User->>Agent: Natural language request
+    
+    Agent->>Registry: Query relevant services
+    Registry-->>Agent: Return services & capabilities with relevance scores
+    
+    Agent->>VarStore: Check for stored variables
+    VarStore-->>Agent: Return available variables
+    
+    opt Missing Required Variables
+        Agent->>User: Request missing information
+        User-->>Agent: Provide variables
+        Agent->>VarStore: Store persistent variables
+    end
+    
+    Note over Agent: Select most relevant services
+    Note over Agent: Fill request templates
+    
+    par Service Execution
+        Agent->>APIs: Execute raw HTTP request 1
+        APIs-->>Agent: Service 1 response
+    and
+        Agent->>APIs: Execute raw HTTP request 2
+        APIs-->>Agent: Service 2 response
+    and
+        Agent->>APIs: Execute raw HTTP request 3
+        APIs-->>Agent: Service 3 response
+    end
+    
+    Note over Agent: Process & combine responses
+    
+    Agent->>User: Return final response
 
-    Agent->>Search: Search for pizza delivery
-    Search-->>Agent: Returns pizzaco.com
-    
-    Agent->>PizzaCo: GET /.well-known/agent-to-service/capabilities
-    PizzaCo-->>Agent: Returns available actions (order pizza, track order, etc.)
-    
-    Agent->>PizzaCo: GET /api-templates/order-pizza
-    PizzaCo-->>Agent: Returns API request template
-    
-    Note over Agent: Fills template with order details
-    
-    Agent->>API: POST /order with completed template
-    API-->>Agent: Order confirmation
+    opt Error Handling
+        APIs-->>Agent: Error response
+        Agent->>Registry: Query alternative services
+        Registry-->>Agent: Return fallback options
+    end
 ```
 
 ## Protocol Specification
 
-### Service Discovery Document
+### Service Definition
+```yaml
+serviceName: "ExampleService"
+serviceDescription: "Human-readable description"
+domain: "api.example.com"
+version: "1.0"
 
-| Field Name         | Type   | Description                                    |
-|--------------------|--------|------------------------------------------------|
-| serviceName        | string | Name of the service                            |
-| serviceDescription | string | Brief description of what the service does     |
-| domain            | string | Base domain for all requests in this service   |
-| capabilities       | array  | List of capabilities the service provides      |
-| metadata           | object | Additional service information                 |
+# Response formats from OpenAPI
+responseSchemas:
+  success:
+    statusCodes: [200, 201]
+    format: "application/json"
+    schema:
+      type: "object"
+      required: ["field1"]
 
-#### Capability Object
+# Rate limiting information
+rateLimits:
+  requestsPerMinute: 60
+  burstSize: 10
 
-| Field Name     | Type            | Description                               |
-|----------------|-----------------|-------------------------------------------|
-| name           | string          | Name of the capability                    |
-| description    | string          | Description of what the capability does   |
-| executionPath  | string          | Path to fetch execution sequence          |
-| requiredScopes | array[string]   | OAuth scopes needed for this capability   |
-| parameters     | array[Parameter]| Optional. List of required parameters     |
+authentications:
+  - type: "oauth2"
+    description: "OAuth2 authentication"
+    requiredVariables: ["CLIENT_ID"]
 
-### Execution Sequence Document
+capabilities:
+  - name: "ExampleCapability"
+    description: "Human-readable description"
+    requiredScopes: ["scope:permission"]
+    tempVariables:
+      VAR1:
+        type: "string"
+        description: "Variable description"
+        pattern: "^[A-Za-z]+$"
+    request: |
+      GET /endpoint HTTP/1.1
+      Host: api.example.com
+      
+      ?param=${VAR1}
 
-| Field Name       | Type           | Description                                   |
-|------------------|----------------|-----------------------------------------------|
-| path             | string         | Path identifier for this execution sequence   |
-| description      | string         | Description of what this sequence does        |
-| requestSequence  | array[Request] | Ordered list of HTTP requests to execute     |
-| variables        | object         | Map of variable names to descriptions         |
-| expectedSequence | array[string]  | Required. Order of request IDs to execute     |
+# Error handling patterns
+errorPatterns:
+  - statusCode: 400
+    pattern: "Invalid input"
+    resolution: "Check input format"
+```
 
-#### Request Object
+### Service Definition
+| Field Name         | Type   | Description                                    | Required |
+|--------------------|--------|------------------------------------------------|----------|
+| serviceName        | string | Name of the service                            | Yes |
+| serviceDescription | string | Natural language description for intent matching| Yes |
+| domain            | string | Base domain for all requests                    | Yes |
+| version           | string | Service definition version                      | Yes |
+| responseSchemas    | object | Definition of response formats                 | No |
+| rateLimits        | object | Rate limiting configuration                    | No |
+| authentications    | array  | Authentication methods                         | No |
+| capabilities      | array  | List of service capabilities                   | Yes |
+| errorPatterns     | array  | Common error patterns and resolutions          | No |
+| security          | object | Security requirements and configurations       | Yes |
 
-| Field Name  | Type   | Description                                   |
-|-------------|--------|-----------------------------------------------|
-| id          | string | Unique identifier for this request            |
-| description | string | Description of what this request does         |
-| raw         | string | Raw HTTP request with variable templates      |
+### Authentication Object
+| Field Name        | Type          | Description                               | Required |
+|-------------------|---------------|-------------------------------------------|----------|
+| type              | string        | Auth type (oauth2, api_key, etc)          | Yes |
+| description       | string        | Human readable description                 | Yes |
+| requiredVariables | array[string] | Variables needed for authentication        | Yes |
+| request           | string        | Raw HTTP auth request template            | Yes |
+
+### Capability Object
+| Field Name        | Type            | Description                               | Required |
+|-------------------|-----------------|-------------------------------------------|----------|
+| name              | string          | Name of the capability                    | Yes |
+| description       | string          | Natural language description              | Yes |
+| requiredScopes    | array[string]   | Required authorization scopes             | No |
+| requiredVariables | array[string]   | Persistent variables needed               | No |
+| tempVariables     | object          | Request-specific variables with validation| No |
+| responseSchema    | string          | Reference to response schema              | No |
+| request           | string          | Raw HTTP request template                 | Yes |
+| examples          | object          | Example requests and responses            | No |
+
+### Variable Definition
+| Field Name   | Type    | Description                                  | Required |
+|--------------|---------|----------------------------------------------|----------|
+| type         | string  | Data type (string, number, date, etc)        | Yes |
+| description  | string  | Human readable description                    | Yes |
+| pattern      | string  | Regex pattern for validation                 | No |
+| min          | number  | Minimum value for numbers                    | No |
+| max          | number  | Maximum value for numbers                    | No |
+| format       | string  | Format specification (date, email, etc)      | No |
+| required     | boolean | Whether variable is required                 | No |
+| default      | any     | Default value if not provided               | No |
+
+### Error Pattern Object
+| Field Name  | Type    | Description                                  | Required |
+|-------------|---------|----------------------------------------------|----------|
+| statusCode  | number  | HTTP status code                             | Yes |
+| pattern     | string  | Error message pattern                        | Yes |
+| resolution  | string  | Human readable resolution steps              | No |
+| retry       | boolean | Whether error is retryable                   | No |
+| retryAfter  | number  | Seconds to wait before retry                | No |
+
+### Response Schema Object
+| Field Name    | Type           | Description                                  | Required |
+|---------------|----------------|----------------------------------------------|----------|
+| statusCodes   | array[number]  | Valid HTTP status codes                      | Yes |
+| format        | string         | Response format (application/json, etc)      | Yes |
+| schema        | object         | Response schema definition                   | Yes |
+| required      | array[string]  | Required fields in response                  | No |
+| examples      | object         | Example responses                           | No |
+
+### Security Object
+| Field Name        | Type    | Description                                  | Required |
+|-------------------|---------|----------------------------------------------|----------|
+| transport         | object  | TLS and certificate requirements             | Yes |
+| rateLimits       | object  | Rate limiting configuration                  | No |
+| variables        | object  | Variable security requirements               | Yes |
+| errorResponses   | object  | Security-related error handling              | No |
 
 ## Security Considerations
+
+- HTTPS required with TLS 1.2+
+- Domain-scoped variables
+- Secure credential storage
+- Rate limiting enforcement
+- Standardized error handling
+
 
 The A2S protocol enforces several security requirements to ensure safe communication between agents and services:
 
@@ -161,58 +333,44 @@ The A2S protocol enforces several security requirements to ensure safe communica
 
 ## Features
 
-- **Registry**: Single source for discovering service capabilities
-- **Raw Requests**: Pre-configured HTTP requests ready for execution
-- **Variable Templates**: Clear system for request customization
-- **Sequence Management**: Handles multi-step processes and dependencies
-- **Future-Ready**: Design supports eventual migration to `.well-known` endpoints
+1. **Natural Language Understanding**
+   - Service matching from user intent
+   - Capability relevance scoring
+   - Context-aware variable resolution
 
-## Architecture
+2. **Multi-Service Coordination**
+   - Parallel service discovery
+   - Sequential operation handling
+   - Budget allocation across services
+   - Date and time coordination
+   - Dependency management
 
-1. **Registry Service**
-   - Maintains service catalog
-   - Provides capability discovery
-   - Returns execution sequences
-
-2. **Service Integration**
-   - Services register their capabilities
-   - Provide request sequences
-   - Optional: Future support for `.well-known` endpoints
-
-3. **Agent Integration**
-   - Query available services
-   - Get execution sequences
-   - Execute raw requests
-
-## Development Status
-
-The project is in alpha stage. Core features are being developed:
-- Central registry implementation
-- Service registration process
-- Basic request execution
-- Initial documentation
+3. **Security & Reliability**
+   - Credential management
+   - Rate limiting
+   - Error recovery
+   - Response validation
 
 ## Future Enhancements
 
-- Proof of concept demo
-- Enhanced authentication patterns
-- Request sequence validation
-- Success/failure pattern matching
-- `.well-known` endpoint support for direct service discovery
+1. **Service Discovery**
+   - Enhanced relevance scoring
+   - Cross-service optimization
+   - Fallback service selection
+
+2. **Operation Planning**
+
+3. **Error Recovery**
+
 
 ## Contributing
 
-We welcome contributions! Areas we need help with:
-- Protocol specification
-- Reference implementations
-- Service integrations
-
-Contributions are welcome! Please follow these steps:
-
-1. **Fork the Repository**: Create your own fork to work on.
-2. **Commit Changes**: Write clear, concise commit messages.
-3. **Open a Pull Request**: Describe the changes and link any relevant issues.
+Areas needing contribution:
+- Protocol specification refinements
+- Service registry implementations
+- Multi-service coordination patterns
+- Security model enhancements
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT License
