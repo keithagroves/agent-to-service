@@ -34,7 +34,7 @@ A2S provides a central registry of services with:
 ```yaml
 serviceName: "PizzaCo"
 serviceDescription: "Online pizza ordering and delivery service"
-domain: "api.pizzaco.example"
+domain: "api.pizzaco.com"
 capabilities:
   - name: "Order Pizza"
     description: "Create a new pizza delivery order"
@@ -55,7 +55,7 @@ requestSequence:
     description: "Authenticate with the service"
     raw: |
       POST /auth HTTP/1.1
-      Host: api.pizzaco.example
+      Host: api.pizzaco.com
       Content-Type: application/json
 
       {
@@ -66,7 +66,7 @@ requestSequence:
     description: "Submit the pizza order"
     raw: |
       POST /orders HTTP/1.1
-      Host: api.pizzaco.example
+      Host: api.pizzaco.com
       Content-Type: application/json
       Authorization: Bearer ${AUTH_TOKEN}
 
@@ -78,6 +78,27 @@ requestSequence:
       }
 ```
 
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant Search as Web Search
+    participant PizzaCo as PizzaCo.com
+    participant API as PizzaCo API
+
+    Agent->>Search: Search for pizza delivery
+    Search-->>Agent: Returns pizzaco.com
+    
+    Agent->>PizzaCo: GET /.well-known/agent-to-service/capabilities
+    PizzaCo-->>Agent: Returns available actions (order pizza, track order, etc.)
+    
+    Agent->>PizzaCo: GET /api-templates/order-pizza
+    PizzaCo-->>Agent: Returns API request template
+    
+    Note over Agent: Fills template with order details
+    
+    Agent->>API: POST /order with completed template
+    API-->>Agent: Order confirmation
+```
 
 ## Protocol Specification
 
