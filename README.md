@@ -63,6 +63,7 @@ services:
             type: "string"
             description: "API key for weather service"
             storage: "service"
+            optional: false
           LOCATION:
             type: "object"
             description: "User's location"
@@ -70,8 +71,10 @@ services:
             optional: true
         tempVariables:
           DATE:
-            type: "date"
+            type: "string"
             description: "Forecast date"
+            format: "date"
+            optional: false
           LAT:
             type: "number"
             description: "Latitude coordinate"
@@ -84,8 +87,9 @@ services:
           GET /v1/forecast HTTP/1.1
           Host: api.weather.example
           Authorization: Bearer ${API_KEY}
-          
+
           ?date=${DATE}&lat=${LAT}&lon=${LON}
+
 ```
 
 ### Example: Multi-Service Flow
@@ -103,14 +107,24 @@ services:
         description: "Find available flights between cities"
         tempVariables:
           FROM:
-            type: "airport_code"
+            type: "string"
+            description: "Departure airport code"
+            format: "airport_code"
+            optional: false
           TO:
-            type: "airport_code"
+            type: "string"
+            description: "Destination airport code"
+            format: "airport_code"
+            optional: false
           DATE_OUT:
-            type: "date"
+            type: "string"
+            description: "Departure date"
+            format: "date"
+            optional: false
           MAX_PRICE:
             type: "number"
-
+            description: "Maximum price"
+            optional: false
   - name: "HotelService"
     description: "Hotel booking service"
     relevance_score: 0.92
@@ -191,6 +205,11 @@ sequenceDiagram
 ## Protocol Specification
 
 ### Service Definition
+
+
+#### YAML Structure
+(Service definition code block)
+
 ```yaml
 serviceName: "ExampleService"
 serviceDescription: "Human-readable description"
@@ -200,36 +219,35 @@ checksum: "3a7bd3e2360a3d5be561819c3df9d6e28d..."
 
 authentications:
   - type: "oauth2"
-    description: "OAuth2 authentication"
+    description: "OAuth2 client credentials flow"
     inputVariables:
       CLIENT_ID:
         type: "string"
         description: "OAuth client ID"
         storage: "service"
+        optional: false
       CLIENT_SECRET:
         type: "string"
         description: "OAuth client secret"
         storage: "service"
+        optional: false
     outputVariables:
       AUTH_TOKEN:
         type: "string"
         description: "Bearer token for API access"
         storage: "service"
         expiry: 3600
-      REFRESH_TOKEN:
-        type: "string"
-        description: "Token for refreshing AUTH_TOKEN"
-        storage: "service"
-        expiry: 2592000
+        optional: false
     request: |
       POST /oauth/token HTTP/1.1
       Host: api.example.com
       Content-Type: application/x-www-form-urlencoded
-      
+
       grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}
     responseMapping:
       "$.access_token": "AUTH_TOKEN"
-      "$.refresh_token": "REFRESH_TOKEN"
+      "$.expires_in": "AUTH_TOKEN_EXPIRY"
+
 
 capabilities:
   - name: "ExampleCapability"
@@ -270,7 +288,9 @@ errorPatterns:
     resolution: "Check input format"
 ```
 
-### Service Definition
+
+#### Field Descriptions
+(Service definition table)
 | Field Name         | Type   | Description                                    | Required |
 |--------------------|--------|------------------------------------------------|----------|
 | serviceName        | string | Name of the service                            | Yes |
@@ -415,16 +435,18 @@ capabilities:
 ```
 
 ### Variable Definition
-| Field Name   | Type    | Description                                  | Required |
-|--------------|---------|----------------------------------------------|----------|
-| type         | string  | Data type (string, number, date, etc)        | Yes |
-| description  | string  | Human readable description                    | Yes |
-| pattern      | string  | Regex pattern for validation                 | No |
-| min          | number  | Minimum value for numbers                    | No |
-| max          | number  | Maximum value for numbers                    | No |
-| format       | string  | Format specification (date, email, etc)      | No |
-| required     | boolean | Whether variable is required                 | No |
-| default      | any     | Default value if not provided               | No |
+| Field Name   | Type    | Description                                    | Required | Default Value |
+  |--------------|---------|------------------------------------------------|----------|---------------|
+  | `type`       | string  | Data type (`string`, `number`, `boolean`, `date`, `object`, `array`) | Yes      | N/A           |
+  | `description`| string  | Human-readable description                     | Yes      | N/A           |
+  | `storage`    | string  | Storage type (`service`, `global`, `temporary`) | Yes      | `temporary`   |
+  | `optional`   | boolean | Indicates if the variable is optional          | No       | `false`       |
+  | `expiry`     | number  | Time in seconds until the variable expires     | No       | N/A           |
+  | `pattern`    | string  | Regex pattern for validation                   | No       | N/A           |
+  | `format`     | string  | Format specification (`date`, `email`, etc.)   | No       | N/A           |
+  | `min`        | number  | Minimum value (for `number` type)              | No       | N/A           |
+  | `max`        | number  | Maximum value (for `number` type)              | No       | N/A           |
+  | `default`    | any     | Default value if not provided                  | No       | N/A           |
 
 ### Error Pattern Object
 | Field Name  | Type    | Description                                  | Required |
