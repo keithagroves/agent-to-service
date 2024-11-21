@@ -131,13 +131,23 @@ services:
     relevant_capabilities:
       - name: "Search Hotels"
         description: "Find available hotels in a city"
-        tempVariables:
-          CITY:
-            type: "string"
-          CHECK_IN:
-            type: "date"
-          MAX_RATE:
-            type: "number"
+       tempVariables:
+        CITY:
+          type: "string"
+          description: "City name"
+          storage: "temporary"
+          optional: false
+        CHECK_IN:
+          type: "string"
+          description: "Check-in date"
+          format: "date"
+          storage: "temporary"
+          optional: false
+        MAX_RATE:
+          type: "number"
+          description: "Maximum hotel rate"
+          storage: "temporary"
+          optional: false
 
 # Second Registry Query - Weather & Activities
 services:
