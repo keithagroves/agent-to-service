@@ -58,7 +58,16 @@ services:
       - name: "Forecast Weather"
         description: "Get weather forecast for a specific date"
         relevance_score: 0.95
-        requiredVariables: ["API_KEY"]
+        inputVariables:
+          API_KEY:
+            type: "string"
+            description: "API key for weather service"
+            storage: "service"
+          LOCATION:
+            type: "object"
+            description: "User's location"
+            storage: "global"
+            optional: true
         tempVariables:
           DATE:
             type: "date"
@@ -66,9 +75,11 @@ services:
           LAT:
             type: "number"
             description: "Latitude coordinate"
+            optional: true  # Optional if LOCATION provided
           LON:
             type: "number"
             description: "Longitude coordinate"
+            optional: true  # Optional if LOCATION provided
         request: |
           GET /v1/forecast HTTP/1.1
           Host: api.weather.example
@@ -185,41 +196,72 @@ serviceName: "ExampleService"
 serviceDescription: "Human-readable description"
 domain: "api.example.com"
 version: "1.0"
-checksum: "3a7bd3e2360a3d5be561819c3df9d6e28d..."  # SHA-256 hash
-
-# Response formats from OpenAPI
-responseSchemas:
-  success:
-    statusCodes: [200, 201]
-    format: "application/json"
-    schema:
-      type: "object"
-      required: ["field1"]
-
-# Rate limiting information
-rateLimits:
-  requestsPerMinute: 60
-  burstSize: 10
+checksum: "3a7bd3e2360a3d5be561819c3df9d6e28d..."
 
 authentications:
   - type: "oauth2"
     description: "OAuth2 authentication"
-    requiredVariables: ["CLIENT_ID"]
+    inputVariables:
+      CLIENT_ID:
+        type: "string"
+        description: "OAuth client ID"
+        storage: "service"
+      CLIENT_SECRET:
+        type: "string"
+        description: "OAuth client secret"
+        storage: "service"
+    outputVariables:
+      AUTH_TOKEN:
+        type: "string"
+        description: "Bearer token for API access"
+        storage: "service"
+        expiry: 3600
+      REFRESH_TOKEN:
+        type: "string"
+        description: "Token for refreshing AUTH_TOKEN"
+        storage: "service"
+        expiry: 2592000
+    request: |
+      POST /oauth/token HTTP/1.1
+      Host: api.example.com
+      Content-Type: application/x-www-form-urlencoded
+      
+      grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}
+    responseMapping:
+      "$.access_token": "AUTH_TOKEN"
+      "$.refresh_token": "REFRESH_TOKEN"
 
 capabilities:
   - name: "ExampleCapability"
     description: "Human-readable description"
     requiredScopes: ["scope:permission"]
-    tempVariables:
-      VAR1:
+    inputVariables:
+      AUTH_TOKEN:
         type: "string"
-        description: "Variable description"
+        description: "Authentication token"
+        storage: "service"
+      USER_EMAIL:
+        type: "string"
+        description: "User's email address"
+        storage: "global"
+        optional: true
+    tempVariables:
+      QUERY:
+        type: "string"
+        description: "Search query"
         pattern: "^[A-Za-z]+$"
+    outputVariables:
+      LAST_QUERY:
+        type: "string"
+        description: "Last successful query"
+        storage: "service"
+        optional: true
     request: |
       GET /endpoint HTTP/1.1
       Host: api.example.com
+      Authorization: Bearer ${AUTH_TOKEN}
       
-      ?param=${VAR1}
+      ?q=${QUERY}&email=${USER_EMAIL}
 
 # Error handling patterns
 errorPatterns:
@@ -248,8 +290,55 @@ errorPatterns:
 |-------------------|---------------|-------------------------------------------|----------|
 | type              | string        | Auth type (oauth2, api_key, etc)          | Yes |
 | description       | string        | Human readable description                 | Yes |
-| requiredVariables | array[string] | Variables needed for authentication        | Yes |
+| inputVariables    | object        | Map of input variable definitions         | Yes |
+| outputVariables   | object        | Map of output variable definitions        | No |
 | request           | string        | Raw HTTP auth request template            | Yes |
+| responseMapping   | object        | Maps response fields to output variables  | No |
+
+Where each variable in `inputVariables` and `outputVariables` follows this schema:
+```yaml
+variableName:
+  type: string        # string, number, boolean, date, object, array
+  description: string # Human readable description
+  storage: string     # "service", "global", or "temporary"
+  optional: boolean   # Whether variable is required (default: false)
+  expiry: number     # Seconds until value expires (optional)
+  pattern: string    # Regex validation pattern (optional)
+  format: string     # Format specification (optional)
+  min: number        # Minimum value for numbers (optional)
+  max: number        # Maximum value for numbers (optional)
+```
+
+Example:
+```yaml
+authentications:
+  - type: "oauth2"
+    description: "OAuth2 client credentials flow"
+    inputVariables:
+      CLIENT_ID:
+        type: "string"
+        description: "OAuth client ID"
+        storage: "service"
+      CLIENT_SECRET:
+        type: "string"
+        description: "OAuth client secret"
+        storage: "service"
+    outputVariables:
+      AUTH_TOKEN:
+        type: "string"
+        description: "Bearer token for API access"
+        storage: "service"
+        expiry: 3600
+    request: |
+      POST /oauth/token HTTP/1.1
+      Host: api.example.com
+      Content-Type: application/x-www-form-urlencoded
+      
+      grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}
+    responseMapping:
+      "$.access_token": "AUTH_TOKEN"
+      "$.expires_in": "AUTH_TOKEN_EXPIRY"
+```
 
 ### Capability Object
 | Field Name        | Type            | Description                               | Required |
@@ -257,11 +346,73 @@ errorPatterns:
 | name              | string          | Name of the capability                    | Yes |
 | description       | string          | Natural language description              | Yes |
 | requiredScopes    | array[string]   | Required authorization scopes             | No |
-| requiredVariables | array[string]   | Persistent variables needed               | No |
-| tempVariables     | object          | Request-specific variables with validation| No |
+| inputVariables    | object          | Map of service/global variable definitions| No |
+| tempVariables     | object          | Map of temporary variable definitions     | No |
+| outputVariables   | object          | Map of output variable definitions        | No |
 | responseSchema    | string          | Reference to response schema              | No |
+| responseMapping   | object          | Maps response fields to output variables  | No |
 | request           | string          | Raw HTTP request template                 | Yes |
 | examples          | object          | Example requests and responses            | No |
+
+Where each variable in `inputVariables`, `tempVariables`, and `outputVariables` follows this schema:
+```yaml
+variableName:
+  type: string        # string, number, boolean, date, object, array
+  description: string # Human readable description
+  storage: string     # "service", "global", or "temporary"
+  optional: boolean   # Whether variable is required (default: false)
+  expiry: number     # Seconds until value expires (optional)
+  pattern: string    # Regex validation pattern (optional)
+  format: string     # Format specification (optional)
+  min: number        # Minimum value for numbers (optional)
+  max: number        # Maximum value for numbers (optional)
+```
+
+Example:
+```yaml
+capabilities:
+  - name: "SearchProducts"
+    description: "Search product catalog"
+    requiredScopes: ["products:read"]
+    inputVariables:
+      AUTH_TOKEN:
+        type: "string"
+        description: "Authentication token"
+        storage: "service"
+      USER_PREFERENCES:
+        type: "object"
+        description: "User preferences"
+        storage: "global"
+        optional: true
+    tempVariables:
+      QUERY:
+        type: "string"
+        description: "Search query"
+        pattern: "^[\\w\\s]{3,50}$"
+      SORT_BY:
+        type: "string"
+        description: "Sort field"
+        optional: true
+    outputVariables:
+      LAST_SEARCH:
+        type: "string"
+        description: "Last successful search query"
+        storage: "service"
+        optional: true
+    responseSchema: "#/components/schemas/ProductSearchResponse"
+    responseMapping:
+      "$.query": "LAST_SEARCH"
+    request: |
+      GET /products/search HTTP/1.1
+      Host: api.example.com
+      Authorization: Bearer ${AUTH_TOKEN}
+      
+      ?q=${QUERY}&sort=${SORT_BY}&preferences=${USER_PREFERENCES}
+    examples:
+      success:
+        request: "?q=blue+shirt&sort=price"
+        response: {"items": [...], "query": "blue shirt"}
+```
 
 ### Variable Definition
 | Field Name   | Type    | Description                                  | Required |
