@@ -185,6 +185,7 @@ serviceName: "ExampleService"
 serviceDescription: "Human-readable description"
 domain: "api.example.com"
 version: "1.0"
+checksum: "3a7bd3e2360a3d5be561819c3df9d6e28d..."  # SHA-256 hash
 
 # Response formats from OpenAPI
 responseSchemas:
@@ -234,6 +235,7 @@ errorPatterns:
 | serviceDescription | string | Natural language description for intent matching| Yes |
 | domain            | string | Base domain for all requests                    | Yes |
 | version           | string | Service definition version                      | Yes |
+| checksum           | string | SHA-256 hash of the service                      | Yes |
 | responseSchemas    | object | Definition of response formats                 | No |
 | rateLimits        | object | Rate limiting configuration                    | No |
 | authentications    | array  | Authentication methods                         | No |
