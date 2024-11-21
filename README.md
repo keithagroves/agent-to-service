@@ -353,6 +353,7 @@ The A2S protocol enforces several security requirements to ensure safe communica
    - Enhanced relevance scoring
    - Cross-service optimization
    - Fallback service selection
+   - Potential use of `/Well-known/a2s` for service discovery
 
 2. **Operation Planning**
 
@@ -366,6 +367,218 @@ Areas needing contribution:
 - Service registry implementations
 - Multi-service coordination patterns
 - Security model enhancements
+
+## Variable Management
+
+The A2S protocol implements a secure, scoped variable management system that handles different types of variables with appropriate security and access controls.
+
+### Variable Types
+
+#### 1. Service Variables
+- Scoped to specific service domains (e.g., `example.com::AUTH_TOKEN`)
+- Encrypted at rest using domain-specific keys
+- Only accessible by services from matching domains
+- Typically used for API keys, tokens, and service-specific credentials
+- Persisted across sessions with domain-specific encryption
+
+#### 2. Global Variables
+- Available across multiple services (e.g., `global::USER_EMAIL`)
+- Requires explicit user trust for service access
+- Used for common user information and preferences
+- Services must request and receive trust before accessing
+- Can be revoked at any time
+
+#### 3. Temporary Variables
+- Scoped to single request or operation
+- Never persisted to storage
+- Cleared after request completion
+- Used for request-specific parameters and context
+
+### Variable Store Schema
+
+```yaml
+variableStore:
+  version: "1.0"
+  types:
+    serviceVariable:
+      format: "${domain}::${name}"
+      storage: "encrypted"
+      scope: "domain-specific"
+      required:
+        - domain
+        - name
+        - value
+      encryption:
+        type: "AES-GCM"
+        keyDerivation: "HKDF"
+        domainBinding: true
+
+    globalVariable:
+      format: "global::${name}"
+      storage: "encrypted"
+      scope: "trusted-services"
+      required:
+        - name
+        - value
+        - trustList
+      trustManagement:
+        required: true
+        userApproval: true
+        revocable: true
+
+    temporaryVariable:
+      format: "temp::${name}"
+      storage: "memory"
+      scope: "request"
+      persistence: false
+      required:
+        - name
+        - value
+```
+
+### Security Requirements
+
+#### Service Variable Security
+- Must be encrypted using domain-specific keys
+- Keys must be derived using domain name and user-specific salt
+- No cross-domain access allowed
+- Must be cleared when service trust is revoked
+- Storage must be secured against tampering
+
+#### Global Variable Security
+- Services must explicitly request trust
+- Trust grants must be user-approved
+- Trust status must be persisted securely
+- Trust can be revoked at any time
+- Access must be logged and auditable
+
+#### Variable Store Security
+- Must implement secure encryption at rest
+- Must prevent cross-domain access
+- Must enforce trust requirements
+- Must clear temporary variables after use
+- Must protect against replay attacks
+
+### Example Implementation
+
+```typescript
+interface VariableStore {
+  // Service Variables
+  setServiceVariable(domain: string, name: string, value: string): Promise<void>;
+  getServiceVariable(domain: string, name: string): Promise<string | null>;
+  
+  // Global Variables
+  setGlobalVariable(name: string, value: string): Promise<void>;
+  getGlobalVariable(name: string): Promise<string | null>;
+  
+  // Trust Management
+  trustService(domain: string): Promise<void>;
+  revokeTrust(domain: string): Promise<void>;
+  isServiceTrusted(domain: string): Promise<boolean>;
+  
+  // Temporary Variables
+  setTempVariable(name: string, value: string): void;
+  getTempVariable(name: string): string | null;
+}
+```
+
+### Service Definition Extensions
+
+Service definitions must specify variable requirements:
+
+```yaml
+serviceName: "ExampleService"
+domain: "api.example.com"
+variables:
+  required:
+    service:
+      - name: "AUTH_TOKEN"
+        description: "Authentication token"
+        format: "Bearer token"
+        encryption: true
+    
+  optional:
+    global:
+      - name: "USER_EMAIL"
+        description: "User's email address"
+        requiresTrust: true
+    
+    temporary:
+      - name: "QUERY"
+        description: "Search query"
+        format: "string"
+```
+
+### Variable Resolution Flow
+
+1. **Service Variable Resolution**
+   ```mermaid
+   graph TD
+       A[Request Starts] --> B{Check Service Variables}
+       B -->|Not Found| C[Prompt User]
+       B -->|Found| D{Verify Domain}
+       C --> E[Encrypt and Store]
+       D -->|Match| F[Use Variable]
+       D -->|No Match| G[Access Denied]
+   ```
+
+2. **Global Variable Resolution**
+   ```mermaid
+   graph TD
+       A[Request Global] --> B{Check Trust}
+       B -->|Trusted| C[Return Variable]
+       B -->|Not Trusted| D[Request Trust]
+       D --> E{User Approves}
+       E -->|Yes| F[Grant Access]
+       E -->|No| G[Deny Access]
+   ```
+
+### Implementation Guidelines
+
+1. **Variable Storage**
+   - Use secure storage mechanisms
+   - Implement domain-specific encryption
+   - Clear temporary variables reliably
+   - Protect against unauthorized access
+
+2. **Trust Management**
+   - Implement clear trust UI/UX
+   - Store trust grants securely
+   - Handle trust revocation
+   - Audit trust usage
+
+3. **Error Handling**
+   - Handle missing variables gracefully
+   - Provide clear error messages
+   - Implement retry mechanisms
+   - Log security violations
+
+### Best Practices
+
+1. **Service Variables**
+   - Always use domain-specific encryption
+   - Implement secure key derivation
+   - Clear on domain mismatch
+   - Audit access attempts
+
+2. **Global Variables**
+   - Minimize trust grants
+   - Clear documentation of usage
+   - Regular trust review
+   - Secure trust storage
+
+3. **Temporary Variables**
+   - Clear after each request
+   - No persistent storage
+   - Validate all inputs
+   - Scope to current request
+
+4. **General Security**
+   - Regular security audits
+   - Secure key management
+   - Access logging
+   - Update mechanisms
+
 
 ## License
 
