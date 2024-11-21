@@ -74,14 +74,17 @@ services:
             type: "string"
             description: "Forecast date"
             format: "date"
+            storage: "temporary"
             optional: false
           LAT:
             type: "number"
             description: "Latitude coordinate"
             optional: true  # Optional if LOCATION provided
+            storage: "temporary"
           LON:
             type: "number"
             description: "Longitude coordinate"
+            storage: "temporary"
             optional: true  # Optional if LOCATION provided
         request: |
           GET /v1/forecast HTTP/1.1
@@ -110,20 +113,24 @@ services:
             type: "string"
             description: "Departure airport code"
             format: "airport_code"
+            storage: "temporary"
             optional: false
           TO:
             type: "string"
             description: "Destination airport code"
             format: "airport_code"
+            storage: "temporary"
             optional: false
           DATE_OUT:
             type: "string"
             description: "Departure date"
             format: "date"
+            storage: "temporary"
             optional: false
           MAX_PRICE:
             type: "number"
             description: "Maximum price"
+            storage: "temporary"
             optional: false
   - name: "HotelService"
     description: "Hotel booking service"
@@ -131,23 +138,23 @@ services:
     relevant_capabilities:
       - name: "Search Hotels"
         description: "Find available hotels in a city"
-       tempVariables:
-        CITY:
-          type: "string"
-          description: "City name"
-          storage: "temporary"
-          optional: false
-        CHECK_IN:
-          type: "string"
-          description: "Check-in date"
-          format: "date"
-          storage: "temporary"
-          optional: false
-        MAX_RATE:
-          type: "number"
-          description: "Maximum hotel rate"
-          storage: "temporary"
-          optional: false
+        tempVariables:
+          CITY:
+            type: "string"
+            description: "City name"
+            storage: "temporary"
+            optional: false
+          CHECK_IN:
+            type: "string"
+            description: "Check-in date"
+            format: "date"
+            storage: "temporary"
+            optional: false
+          MAX_RATE:
+            type: "number"
+            description: "Maximum hotel rate"
+            storage: "temporary"
+            optional: false
 
 # Second Registry Query - Weather & Activities
 services:
@@ -214,11 +221,6 @@ sequenceDiagram
 
 ## Protocol Specification
 
-### Service Definition
-
-
-#### YAML Structure
-(Service definition code block)
 
 ```yaml
 serviceName: "ExampleService"
@@ -277,6 +279,7 @@ capabilities:
       QUERY:
         type: "string"
         description: "Search query"
+        storage: "temporary"
         pattern: "^[A-Za-z]+$"
     outputVariables:
       LAST_QUERY:
@@ -300,7 +303,6 @@ errorPatterns:
 
 
 #### Field Descriptions
-(Service definition table)
 | Field Name         | Type   | Description                                    | Required |
 |--------------------|--------|------------------------------------------------|----------|
 | serviceName        | string | Name of the service                            | Yes |
@@ -331,7 +333,7 @@ variableName:
   type: string        # string, number, boolean, date, object, array
   description: string # Human readable description
   storage: string     # "service", "global", or "temporary"
-  optional: boolean   # Whether variable is required (default: false)
+  optional: boolean   # Whether variable is optional (default: false)
   expiry: number     # Seconds until value expires (optional)
   pattern: string    # Regex validation pattern (optional)
   format: string     # Format specification (optional)
@@ -390,7 +392,7 @@ variableName:
   type: string        # string, number, boolean, date, object, array
   description: string # Human readable description
   storage: string     # "service", "global", or "temporary"
-  optional: boolean   # Whether variable is required (default: false)
+  optional: boolean   # Whether variable is optional (default: false)
   expiry: number     # Seconds until value expires (optional)
   pattern: string    # Regex validation pattern (optional)
   format: string     # Format specification (optional)
@@ -419,10 +421,12 @@ capabilities:
         type: "string"
         description: "Search query"
         pattern: "^[\\w\\s]{3,50}$"
+        storage: "temporary"
       SORT_BY:
         type: "string"
         description: "Sort field"
         optional: true
+        storage: "temporary"
     outputVariables:
       LAST_SEARCH:
         type: "string"
@@ -446,17 +450,16 @@ capabilities:
 
 ### Variable Definition
 | Field Name   | Type    | Description                                    | Required | Default Value |
-  |--------------|---------|------------------------------------------------|----------|---------------|
-  | `type`       | string  | Data type (`string`, `number`, `boolean`, `date`, `object`, `array`) | Yes      | N/A           |
-  | `description`| string  | Human-readable description                     | Yes      | N/A           |
-  | `storage`    | string  | Storage type (`service`, `global`, `temporary`) | Yes      | `temporary`   |
-  | `optional`   | boolean | Indicates if the variable is optional          | No       | `false`       |
-  | `expiry`     | number  | Time in seconds until the variable expires     | No       | N/A           |
-  | `pattern`    | string  | Regex pattern for validation                   | No       | N/A           |
-  | `format`     | string  | Format specification (`date`, `email`, etc.)   | No       | N/A           |
-  | `min`        | number  | Minimum value (for `number` type)              | No       | N/A           |
-  | `max`        | number  | Maximum value (for `number` type)              | No       | N/A           |
-  | `default`    | any     | Default value if not provided                  | No       | N/A           |
+|--------------|---------|------------------------------------------------|----------|---------------|
+| `type`       | string  | Data type (`string`, `number`, `boolean`, `date`, `object`, `array`) | Yes      | N/A           |
+| `description`| string  | Human-readable description                     | Yes      | N/A           |
+| `storage`    | string  | Storage type (`service`, `global`, `temporary`) | Yes      | `temporary`   |
+| `optional`   | boolean | Indicates if the variable is optional          | No       | `false`       |
+| `expiry`     | number  | Time in seconds until the variable expires     | No       | N/A           |
+| `pattern`    | string  | Regex pattern for validation                   | No       | N/A           |
+| `format`     | string  | Format specification (`date`, `email`, etc.)   | No       | N/A           |
+| `min`        | number  | Minimum value (for `number` type)              | No       | N/A           |
+| `max`        | number  | Maximum value (for `number` type)              | No       | N/A           |
 
 ### Error Pattern Object
 | Field Name  | Type    | Description                                  | Required |
@@ -473,7 +476,7 @@ capabilities:
 | statusCodes   | array[number]  | Valid HTTP status codes                      | Yes |
 | format        | string         | Response format (application/json, etc)      | Yes |
 | schema        | object         | Response schema definition                   | Yes |
-| required      | array[string]  | Required fields in response                  | No |
+| optional      | array[string]  | Required fields in response                  | No |
 | examples      | object         | Example responses                           | No |
 
 ### Security Object
@@ -761,7 +764,6 @@ variables:
    - Secure key management
    - Access logging
    - Update mechanisms
-
 
 ## License
 
