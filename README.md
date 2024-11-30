@@ -1,770 +1,379 @@
-# Agent to Service Protocol (A2S)
+# Agent-to-Service Protocol (A2S)
 
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-A standardized protocol enabling AI agents to discover and execute web service capabilities through natural language understanding and raw HTTP requests. A2S helps agents efficiently coordinate multiple services to solve complex user requests.
+A2S is a protocol that enables AI agents to discover and interact with web services through standardized capability definitions. It allows for discovery at both the service and capability levels, enabling agents to find and execute specific capabilities across multiple services dynamically.
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Core Concepts](#core-concepts)
+  - [Dynamic Protocol Support](#dynamic-protocol-support)
+  - [Capability Header](#capability-header)
+  - [Execution Section](#execution-section)
+  - [State Management](#state-management)
+  - [Security](#security)
+- [Discovery System](#discovery-system)
+  - [Capability Registry](#capability-registry)
+  - [Searching for Capabilities and Services](#searching-for-capabilities-and-services)
+- [Creating Capabilities](#creating-capabilities)
+  - [Capability Definition](#capability-definition)
+  - [Calculating the Checksum](#calculating-the-checksum)
+  - [Best Practices](#best-practices)
+- [State Management](#state-management)
+  - [State Scopes](#state-scopes)
+  - [State Resolution and Mapping](#state-resolution-and-mapping)
+- [Execution Flow](#execution-flow)
+  - [Creating Execution Plans](#creating-execution-plans)
+  - [Executing Capabilities](#executing-capabilities)
+- [Security Considerations](#security-considerations)
+- [Example Usage](#example-usage)
+  - [Code Examples](#code-examples)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Introduction
+
+A2S addresses several key challenges that AI agents face when interacting with diverse web services:
+
+1. **Capability Discovery**: How agents find relevant capabilities across services.
+2. **Service Integration**: How services expose their capabilities in various formats.
+3. **Execution Flow**: How agents coordinate multiple capabilities for complex tasks.
+4. **State Management**: Secure handling of state, including variables and data across services.
+5. **Security**: Ensuring secure interactions with services, including authentication and data protection.
+
+## Architecture
 
 ```mermaid
+
 graph LR
-    U[User] -->|Natural Language Request| A[AI Agent]
-    A -->|Query Services| B[A2S Registry]
-    B -->|Return Relevant Services & Capabilities| A
-    A -->|Variable Resolution| V[Variable Store]
-    V -->|Get Stored Variables| A
-    A -->|User Input Request| U
-    U -->|Provide Missing Variables| A
-    A -->|Execute Raw Requests| S1[Service 1]
-    S1 -->|Response| A
-    A -->|Final Response| U
 
-    style U fill:#f9f,stroke:#333,stroke-width:4px
-    style A fill:#bbf,stroke:#333,stroke-width:2px
-    style B fill:#dfd,stroke:#333,stroke-width:2px
-    style V fill:#fdd,stroke:#333,stroke-width:2px
-    style S1 fill:#ddd,stroke:#333,stroke-width:2px
+    C1["description: Get weather and post to Twitter
+
+    inputs: location, date
+
+    outputs: tweet_id
+
+    cached_specs: {weather_spec, twitter_spec}"]
+
+    
+
+    C2["description: Just get weather forecast
+
+    inputs: location, date
+
+    outputs: temperature, conditions
+
+    cached_specs: {weather_spec}"]
+
+    
+
+    S1["WeatherService
+
+    domain: api.weather.com
+
+    format: OpenAPI"]
+
+    
+
+    S2["TwitterAPI
+
+    domain: twitter.com
+
+    format: OpenAPI"]
+
+    C1 --- S1
+
+    C1 --- S2
+
+    C2 --- S1
+
+    classDef capability fill:#2ecc71,stroke:#fff,stroke-width:2px,color:#fff;
+
+    classDef service fill:#3498db,stroke:#fff,stroke-width:2px,color:#fff;
+
+    
+
+    class C1,C2 capability;
+
+    class S1,S2 service;
+
 ```
 
-## Problem
 
-Currently, AI agents struggle to interact with web services because they must:
-- Translate natural language to API calls
-- Navigate complex service documentation
-- Coordinate multiple services for single tasks
-- Handle different authentication methods
-- Track user credentials and preferences
-- Manage sequential and dependent operations
+By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services regardless of their underlying protocols.
 
-## Solution
+---
 
-A2S provides a central registry that helps agents:
-1. Discover relevant services from natural language requests
-2. Access pre-configured HTTP requests
-3. Coordinate multi-service operations
-4. Manage variables and credentials securely
+## Core Concepts
 
-### Example: Single-Service Flow
+### Dynamic Protocol Support
 
-User: "What's the weather for this Thursday?"
+A2S is designed to be flexible and protocol-agnostic. Each **step** within a capability specifies the format of its interaction, which can be:
+
+- **OpenAPI**: For RESTful APIs.
+- **GraphQL**: For flexible queries and mutations.
+- **AsyncAPI**: For event-driven architectures.
+- **Custom**: For any other interaction patterns or proprietary protocols.
+
+This dynamic support allows agents to interact with a wide range of services seamlessly, even within a single capability execution.
+
+### Capability Header
+
+Each capability definition begins with a header containing essential metadata:
 
 ```yaml
-# Registry Response
-services:
-  - name: "WeatherService"
-    description: "Global weather data and forecasts"
-    domain: "api.weather.example"
-    relevance_score: 0.92
-    relevant_capabilities:
-      - name: "Forecast Weather"
-        description: "Get weather forecast for a specific date"
-        relevance_score: 0.95
-        inputVariables:
-          API_KEY:
-            type: "string"
-            description: "API key for weather service"
-            storage: "service"
-            optional: false
-          LOCATION:
-            type: "object"
-            description: "User's location"
-            storage: "global"
-            optional: true
-        tempVariables:
-          DATE:
-            type: "string"
-            description: "Forecast date"
-            format: "date"
-            storage: "temporary"
-            optional: false
-          LAT:
-            type: "number"
-            description: "Latitude coordinate"
-            optional: true  # Optional if LOCATION provided
-            storage: "temporary"
-          LON:
-            type: "number"
-            description: "Longitude coordinate"
-            storage: "temporary"
-            optional: true  # Optional if LOCATION provided
-        request: |
-          GET /v1/forecast HTTP/1.1
-          Host: api.weather.example
-          Authorization: Bearer ${API_KEY}
-
-          ?date=${DATE}&lat=${LAT}&lon=${LON}
-
+a2s: "<protocol_version>"
+name: "<capability_name>"
+description: "<capability_description>"
+domains:
+  - "<domain1>"
+  - "<domain2>"
+version: "<capability_version>"
+checksum: "<checksum_value>"
 ```
 
-### Example: Multi-Service Flow
+- **`a2s`**: Specifies the A2S protocol version the capability adheres to.
+- **`name`**: A unique identifier for the capability.
+- **`description`**: A concise, human-readable explanation of what the capability does.
+- **`domains`**: A list of domains that the capability interacts with.
+- **`version`**: The version of the capability itself.
+- **`checksum`**: A cryptographic hash (e.g., SHA-256) of the capability definition, excluding the `checksum` field itself.
 
-User: "Plan me a weekend trip to Seattle - I need flights, hotel, and want good weather for sightseeing. Budget is $1000."
+### Execution Section
+
+Since each document represents a single capability, we include an `execution` section directly in the capability definition. This section contains all the necessary details for executing the capability.
+
+#### Execution Steps with Individual Formats
+
+Each step in the execution can have its own `format`, allowing for interactions with different services or protocols. When the `format` is `OpenAPI`, the `definition` field should contain a valid OpenAPI specification that includes only the specific path and operation relevant to the step. This eliminates ambiguity about which endpoint will be executed and ensures clarity.
+
+---
+
+## Creating Capabilities
+
+### Capability Definition
+
+Each capability includes implementation details and provider-specific information. Since the capability is the entire document, we include an `execution` section directly.
+
+#### Execution Steps with OpenAPI Format
+
+Let's illustrate how to define a step using the OpenAPI specification, including only the specific path necessary for the capability.
+
+#### Example Capability Definition with OpenAPI Step
 
 ```yaml
-# First Registry Query - Travel Services
-services:
-  - name: "FlightService"
-    description: "Flight booking service"
-    relevance_score: 0.94
-    relevant_capabilities:
-      - name: "Search Flights"
-        description: "Find available flights between cities"
-        tempVariables:
-          FROM:
-            type: "string"
-            description: "Departure airport code"
-            format: "airport_code"
-            storage: "temporary"
-            optional: false
-          TO:
-            type: "string"
-            description: "Destination airport code"
-            format: "airport_code"
-            storage: "temporary"
-            optional: false
-          DATE_OUT:
-            type: "string"
-            description: "Departure date"
-            format: "date"
-            storage: "temporary"
-            optional: false
-          MAX_PRICE:
-            type: "number"
-            description: "Maximum price"
-            storage: "temporary"
-            optional: false
-  - name: "HotelService"
-    description: "Hotel booking service"
-    relevance_score: 0.92
-    relevant_capabilities:
-      - name: "Search Hotels"
-        description: "Find available hotels in a city"
-        tempVariables:
-          CITY:
-            type: "string"
-            description: "City name"
-            storage: "temporary"
-            optional: false
-          CHECK_IN:
-            type: "string"
-            description: "Check-in date"
-            format: "date"
-            storage: "temporary"
-            optional: false
-          MAX_RATE:
-            type: "number"
-            description: "Maximum hotel rate"
-            storage: "temporary"
-            optional: false
-
-# Second Registry Query - Weather & Activities
-services:
-  - name: "WeatherService"
-    description: "Weather forecasts"
-    relevant_capabilities:
-      - name: "Extended Forecast"
-        description: "Multi-day weather forecast"
-
-  - name: "TouristActivities"
-    description: "Sightseeing and attractions"
-    relevant_capabilities:
-      - name: "Search Activities"
-        description: "Find weather-appropriate activities"
-```
-
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Agent as AI Agent
-    participant Registry as A2S Registry
-    participant VarStore as Variable Store
-    participant APIs as Services
-    
-    User->>Agent: Natural language request
-    
-    Agent->>Registry: Query relevant services
-    Registry-->>Agent: Return services & capabilities with relevance scores
-    
-    Agent->>VarStore: Check for stored variables
-    VarStore-->>Agent: Return available variables
-    
-    opt Missing Required Variables
-        Agent->>User: Request missing information
-        User-->>Agent: Provide variables
-        Agent->>VarStore: Store persistent variables
-    end
-    
-    Note over Agent: Select most relevant services
-    Note over Agent: Fill request templates
-    
-    par Service Execution
-        Agent->>APIs: Execute raw HTTP request 1
-        APIs-->>Agent: Service 1 response
-    and
-        Agent->>APIs: Execute raw HTTP request 2
-        APIs-->>Agent: Service 2 response
-    and
-        Agent->>APIs: Execute raw HTTP request 3
-        APIs-->>Agent: Service 3 response
-    end
-    
-    Note over Agent: Process & combine responses
-    
-    Agent->>User: Return final response
-
-    opt Error Handling
-        APIs-->>Agent: Error response
-        Agent->>Registry: Query alternative services
-        Registry-->>Agent: Return fallback options
-    end
-```
-
-## Protocol Specification
-
-
-```yaml
-serviceName: "ExampleService"
-serviceDescription: "Human-readable description"
-domain: "api.example.com"
+a2s: "1.0.0"
+name: "ListDogBreeds"
+description: "Retrieve a list of dog breeds"
+domains:
+  - "dogapi.dog"
 version: "1.0"
-checksum: "3a7bd3e2360a3d5be561819c3df9d6e28d..."
+checksum: "<calculated_checksum>"
 
-authentications:
-  - type: "oauth2"
-    description: "OAuth2 client credentials flow"
-    inputVariables:
-      CLIENT_ID:
-        type: "string"
-        description: "OAuth client ID"
-        storage: "service"
-        optional: false
-      CLIENT_SECRET:
-        type: "string"
-        description: "OAuth client secret"
-        storage: "service"
-        optional: false
-    outputVariables:
-      AUTH_TOKEN:
-        type: "string"
-        description: "Bearer token for API access"
-        storage: "service"
-        expiry: 3600
-        optional: false
-    request: |
-      POST /oauth/token HTTP/1.1
-      Host: api.example.com
-      Content-Type: application/x-www-form-urlencoded
-
-      grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}
-    responseMapping:
-      "$.access_token": "AUTH_TOKEN"
-      "$.expires_in": "AUTH_TOKEN_EXPIRY"
-
-
-capabilities:
-  - name: "ExampleCapability"
-    description: "Human-readable description"
-    requiredScopes: ["scope:permission"]
-    inputVariables:
-      AUTH_TOKEN:
-        type: "string"
-        description: "Authentication token"
-        storage: "service"
-      USER_EMAIL:
-        type: "string"
-        description: "User's email address"
-        storage: "global"
-        optional: true
-    tempVariables:
-      QUERY:
-        type: "string"
-        description: "Search query"
-        storage: "temporary"
-        pattern: "^[A-Za-z]+$"
-    outputVariables:
-      LAST_QUERY:
-        type: "string"
-        description: "Last successful query"
-        storage: "service"
-        optional: true
-    request: |
-      GET /endpoint HTTP/1.1
-      Host: api.example.com
-      Authorization: Bearer ${AUTH_TOKEN}
-      
-      ?q=${QUERY}&email=${USER_EMAIL}
-
-# Error handling patterns
-errorPatterns:
-  - statusCode: 400
-    pattern: "Invalid input"
-    resolution: "Check input format"
+# Execution details
+execution:
+  type: sequence
+  steps:
+    - id: "listBreeds"
+      format: OpenAPI
+      definition:
+        openapi: "3.0.1"
+        info:
+          title: "Dog API - List Breeds"
+          version: "1.0.0"
+          description: "Retrieve a list of dog breeds from the Dog API."
+        servers:
+          - url: "https://dogapi.dog/api/v2"
+        paths:
+          /breeds:
+            get:
+              summary: "List Breeds"
+              tags:
+                - "Breeds"
+              responses:
+                '200':
+                  description: "Successful response"
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                type:
+                                  type: string
+                                attributes:
+                                  type: object
+                                  properties:
+                                    name:
+                                      type: string
+                                    description:
+                                      type: string
+                                    hypoallergenic:
+                                      type: boolean
+                          links:
+                            type: object
+                            properties:
+                              self:
+                                type: string
+                              current:
+                                type: string
+                              next:
+                                type: string
+                              last:
+                                type: string
+      input_template: {}  # No inputs required for this endpoint
+      output_mapping:
+        breeds: "$.data"
 ```
 
+**Explanation:**
 
-#### Field Descriptions
-| Field Name         | Type   | Description                                    | Required |
-|--------------------|--------|------------------------------------------------|----------|
-| serviceName        | string | Name of the service                            | Yes |
-| serviceDescription | string | Natural language description for intent matching| Yes |
-| domain            | string | Base domain for all requests                    | Yes |
-| version           | string | Service definition version                      | Yes |
-| checksum           | string | SHA-256 hash of the service                      | Yes |
-| responseSchemas    | object | Definition of response formats                 | No |
-| rateLimits        | object | Rate limiting configuration                    | No |
-| authentications    | array  | Authentication methods                         | No |
-| capabilities      | array  | List of service capabilities                   | Yes |
-| errorPatterns     | array  | Common error patterns and resolutions          | No |
-| security          | object | Security requirements and configurations       | Yes |
+- **Step Definition:**
+  - **format**: `OpenAPI` indicates that this step uses the OpenAPI specification.
+  - **definition**: Contains a minimal OpenAPI specification focused only on the `/breeds` endpoint that will be executed.
+    - **openapi**: Version of the OpenAPI specification used.
+    - **info**: Provides metadata about the API.
+    - **servers**: Specifies the base URL for API requests.
+    - **paths**: Includes only the `/breeds` path with the `get` operation.
+- **Input Template:**
+  - Since the `/breeds` endpoint doesn't require any parameters, the `input_template` is empty.
+- **Output Mapping:**
+  - Maps the response data to the `breeds` variable, which can be used later in the execution flow or presented to the user.
 
-### Authentication Object
-| Field Name        | Type          | Description                               | Required |
-|-------------------|---------------|-------------------------------------------|----------|
-| type              | string        | Auth type (oauth2, api_key, etc)          | Yes |
-| description       | string        | Human readable description                 | Yes |
-| inputVariables    | object        | Map of input variable definitions         | Yes |
-| outputVariables   | object        | Map of output variable definitions        | No |
-| request           | string        | Raw HTTP auth request template            | Yes |
-| responseMapping   | object        | Maps response fields to output variables  | No |
+#### Including Only the Necessary Path
 
-Where each variable in `inputVariables` and `outputVariables` follows this schema:
-```yaml
-variableName:
-  type: string        # string, number, boolean, date, object, array
-  description: string # Human readable description
-  storage: string     # "service", "global", or "temporary"
-  optional: boolean   # Whether variable is optional (default: false)
-  expiry: number     # Seconds until value expires (optional)
-  pattern: string    # Regex validation pattern (optional)
-  format: string     # Format specification (optional)
-  min: number        # Minimum value for numbers (optional)
-  max: number        # Maximum value for numbers (optional)
-```
+By limiting the OpenAPI specification to only the relevant path and operation, we ensure that:
 
-Example:
-```yaml
-authentications:
-  - type: "oauth2"
-    description: "OAuth2 client credentials flow"
-    inputVariables:
-      CLIENT_ID:
-        type: "string"
-        description: "OAuth client ID"
-        storage: "service"
-      CLIENT_SECRET:
-        type: "string"
-        description: "OAuth client secret"
-        storage: "service"
-    outputVariables:
-      AUTH_TOKEN:
-        type: "string"
-        description: "Bearer token for API access"
-        storage: "service"
-        expiry: 3600
-    request: |
-      POST /oauth/token HTTP/1.1
-      Host: api.example.com
-      Content-Type: application/x-www-form-urlencoded
-      
-      grant_type=client_credentials&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}
-    responseMapping:
-      "$.access_token": "AUTH_TOKEN"
-      "$.expires_in": "AUTH_TOKEN_EXPIRY"
-```
+- **Clarity:** The agent knows exactly which endpoint to call without ambiguity.
+- **Efficiency:** The capability definition remains concise and focused.
+- **Security:** Reduces the risk of unintended API calls to other endpoints.
 
-### Capability Object
-| Field Name        | Type            | Description                               | Required |
-|-------------------|-----------------|-------------------------------------------|----------|
-| name              | string          | Name of the capability                    | Yes |
-| description       | string          | Natural language description              | Yes |
-| requiredScopes    | array[string]   | Required authorization scopes             | No |
-| inputVariables    | object          | Map of service/global variable definitions| No |
-| tempVariables     | object          | Map of temporary variable definitions     | No |
-| outputVariables   | object          | Map of output variable definitions        | No |
-| responseSchema    | string          | Reference to response schema              | No |
-| responseMapping   | object          | Maps response fields to output variables  | No |
-| request           | string          | Raw HTTP request template                 | Yes |
-| examples          | object          | Example requests and responses            | No |
+---
 
-Where each variable in `inputVariables`, `tempVariables`, and `outputVariables` follows this schema:
-```yaml
-variableName:
-  type: string        # string, number, boolean, date, object, array
-  description: string # Human readable description
-  storage: string     # "service", "global", or "temporary"
-  optional: boolean   # Whether variable is optional (default: false)
-  expiry: number     # Seconds until value expires (optional)
-  pattern: string    # Regex validation pattern (optional)
-  format: string     # Format specification (optional)
-  min: number        # Minimum value for numbers (optional)
-  max: number        # Maximum value for numbers (optional)
-```
+### Incorporating Multiple Steps with Different Formats
 
-Example:
-```yaml
-capabilities:
-  - name: "SearchProducts"
-    description: "Search product catalog"
-    requiredScopes: ["products:read"]
-    inputVariables:
-      AUTH_TOKEN:
-        type: "string"
-        description: "Authentication token"
-        storage: "service"
-      USER_PREFERENCES:
-        type: "object"
-        description: "User preferences"
-        storage: "global"
-        optional: true
-    tempVariables:
-      QUERY:
-        type: "string"
-        description: "Search query"
-        pattern: "^[\\w\\s]{3,50}$"
-        storage: "temporary"
-      SORT_BY:
-        type: "string"
-        description: "Sort field"
-        optional: true
-        storage: "temporary"
-    outputVariables:
-      LAST_SEARCH:
-        type: "string"
-        description: "Last successful search query"
-        storage: "service"
-        optional: true
-    responseSchema: "#/components/schemas/ProductSearchResponse"
-    responseMapping:
-      "$.query": "LAST_SEARCH"
-    request: |
-      GET /products/search HTTP/1.1
-      Host: api.example.com
-      Authorization: Bearer ${AUTH_TOKEN}
-      
-      ?q=${QUERY}&sort=${SORT_BY}&preferences=${USER_PREFERENCES}
-    examples:
-      success:
-        request: "?q=blue+shirt&sort=price"
-        response: {"items": [...], "query": "blue shirt"}
-```
+Now, let's update the previous example of the `PostWeatherTweet` capability to reflect this approach.
 
-### Variable Definition
-| Field Name   | Type    | Description                                    | Required | Default Value |
-|--------------|---------|------------------------------------------------|----------|---------------|
-| `type`       | string  | Data type (`string`, `number`, `boolean`, `date`, `object`, `array`) | Yes      | N/A           |
-| `description`| string  | Human-readable description                     | Yes      | N/A           |
-| `storage`    | string  | Storage type (`service`, `global`, `temporary`) | Yes      | `temporary`   |
-| `optional`   | boolean | Indicates if the variable is optional          | No       | `false`       |
-| `expiry`     | number  | Time in seconds until the variable expires     | No       | N/A           |
-| `pattern`    | string  | Regex pattern for validation                   | No       | N/A           |
-| `format`     | string  | Format specification (`date`, `email`, etc.)   | No       | N/A           |
-| `min`        | number  | Minimum value (for `number` type)              | No       | N/A           |
-| `max`        | number  | Maximum value (for `number` type)              | No       | N/A           |
-
-### Error Pattern Object
-| Field Name  | Type    | Description                                  | Required |
-|-------------|---------|----------------------------------------------|----------|
-| statusCode  | number  | HTTP status code                             | Yes |
-| pattern     | string  | Error message pattern                        | Yes |
-| resolution  | string  | Human readable resolution steps              | No |
-| retry       | boolean | Whether error is retryable                   | No |
-| retryAfter  | number  | Seconds to wait before retry                | No |
-
-### Response Schema Object
-| Field Name    | Type           | Description                                  | Required |
-|---------------|----------------|----------------------------------------------|----------|
-| statusCodes   | array[number]  | Valid HTTP status codes                      | Yes |
-| format        | string         | Response format (application/json, etc)      | Yes |
-| schema        | object         | Response schema definition                   | Yes |
-| optional      | array[string]  | Required fields in response                  | No |
-| examples      | object         | Example responses                           | No |
-
-### Security Object
-| Field Name        | Type    | Description                                  | Required |
-|-------------------|---------|----------------------------------------------|----------|
-| transport         | object  | TLS and certificate requirements             | Yes |
-| rateLimits       | object  | Rate limiting configuration                  | No |
-| variables        | object  | Variable security requirements               | Yes |
-| errorResponses   | object  | Security-related error handling              | No |
-
-## Security Considerations
-
-- HTTPS required with TLS 1.2+
-- Domain-scoped variables
-- Secure credential storage
-- Rate limiting enforcement
-- Standardized error handling
-
-
-The A2S protocol enforces several security requirements to ensure safe communication between agents and services:
-
-- **Transport Security:**
-  - All communications must use HTTPS
-  - TLS 1.2 or higher is required
-  - Valid SSL/TLS certificates from trusted CAs must be used
-  - Certificate verification is mandatory
-
-- **Domain Requirements:**
-  - All requests in a sequence must be to the same domain specified in the service definition
-  - Cross-domain requests are not allowed within a single sequence
-  - The Host header in requests must match the service's domain
-
-- **Data Protection:**
-  - Sensitive variables (e.g., `${CLIENT_SECRET}`, `${AUTH_TOKEN}`) must be handled securely
-  - Tokens should be stored securely and disposed of properly
-
-## Features
-
-1. **Natural Language Understanding**
-   - Service matching from user intent
-   - Capability relevance scoring
-   - Context-aware variable resolution
-
-2. **Multi-Service Coordination**
-   - Parallel service discovery
-   - Sequential operation handling
-   - Budget allocation across services
-   - Date and time coordination
-   - Dependency management
-
-3. **Security & Reliability**
-   - Credential management
-   - Rate limiting
-   - Error recovery
-   - Response validation
-
-## Future Enhancements
-
-1. **Service Discovery**
-   - Enhanced relevance scoring
-   - Cross-service optimization
-   - Fallback service selection
-   - Potential use of `/Well-known/a2s` for service discovery
-
-2. **Operation Planning**
-
-3. **Error Recovery**
-
-
-## Contributing
-
-Areas needing contribution:
-- Protocol specification refinements
-- Service registry implementations
-- Multi-service coordination patterns
-- Security model enhancements
-
-## Variable Management
-
-The A2S protocol implements a secure, scoped variable management system that handles different types of variables with appropriate security and access controls.
-
-### Variable Types
-
-#### 1. Service Variables
-- Scoped to specific service domains (e.g., `example.com::AUTH_TOKEN`)
-- Encrypted at rest using domain-specific keys
-- Only accessible by services from matching domains
-- Typically used for API keys, tokens, and service-specific credentials
-- Persisted across sessions with domain-specific encryption
-
-#### 2. Global Variables
-- Available across multiple services (e.g., `global::USER_EMAIL`)
-- Requires explicit user trust for service access
-- Used for common user information and preferences
-- Services must request and receive trust before accessing
-- Can be revoked at any time
-
-#### 3. Temporary Variables
-- Scoped to single request or operation
-- Never persisted to storage
-- Cleared after request completion
-- Used for request-specific parameters and context
-
-### Variable Store Schema
+#### Updated `PostWeatherTweet` Capability Definition
 
 ```yaml
-variableStore:
-  version: "1.0"
-  types:
-    serviceVariable:
-      format: "${domain}::${name}"
-      storage: "encrypted"
-      scope: "domain-specific"
-      required:
-        - domain
-        - name
-        - value
-      encryption:
-        type: "AES-GCM"
-        keyDerivation: "HKDF"
-        domainBinding: true
+a2s: "1.0.0"
+name: "PostWeatherTweet"
+description: "Gets weather for a location and posts it to Twitter"
+domains:
+  - "api.weather.com"
+  - "api.twitter.com"
+version: "1.0"
+checksum: "<calculated_checksum>"
 
-    globalVariable:
-      format: "global::${name}"
-      storage: "encrypted"
-      scope: "trusted-services"
-      required:
-        - name
-        - value
-        - trustList
-      trustManagement:
-        required: true
-        userApproval: true
-        revocable: true
+# Capability-specific patterns
+patterns:
+  parameters:
+    - name: "location"
+      patterns: ["in *", "for *", "at *"]
+    - name: "message"
+      patterns: ["say *", "tweet *", "post *"]
 
-    temporaryVariable:
-      format: "temp::${name}"
-      storage: "memory"
-      scope: "request"
-      persistence: false
-      required:
-        - name
-        - value
+# Execution details
+execution:
+  type: sequence
+  steps:
+    - id: "getWeather"
+      format: OpenAPI
+      definition:
+        openapi: "3.0.1"
+        info:
+          title: "Weather API - Get Current Weather"
+          version: "1.0.0"
+          description: "Retrieve the current weather for a specific city."
+        servers:
+          - url: "https://api.weather.com"
+        paths:
+          /current/{city}:
+            get:
+              summary: "Get Current Weather"
+              parameters:
+                - name: city
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+              responses:
+                '200':
+                  description: "Successful response"
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        properties:
+                          weather:
+                            type: object
+                            properties:
+                              description:
+                                type: string
+      input_template:
+        pathParameters:
+          city: "${location}"
+      output_mapping:
+        WEATHER_TEXT: "$.weather.description"
+
+    - id: "postTweet"
+      format: GraphQL
+      definition:
+        endpoint: "https://api.twitter.com/graphql"
+        query: |
+          mutation postTweet($text: String!) {
+            createTweet(text: $text) {
+              id
+              text
+            }
+          }
+      input_template:
+        variables:
+          text: "${message} ${WEATHER_TEXT}"
+      output_mapping:
+        tweet_id: "$.data.createTweet.id"
 ```
 
-### Security Requirements
+**Explanation:**
 
-#### Service Variable Security
-- Must be encrypted using domain-specific keys
-- Keys must be derived using domain name and user-specific salt
-- No cross-domain access allowed
-- Must be cleared when service trust is revoked
-- Storage must be secured against tampering
+- **Step `getWeather`:**
+  - **format**: `OpenAPI`
+  - **definition**: Contains a minimal OpenAPI specification focused on the `/current/{city}` endpoint.
+    - **servers**: Base URL for the weather API.
+    - **paths**: Includes only the `/current/{city}` path with the `get` operation.
+  - **input_template**: Injects the `${location}` variable into the `city` path parameter.
+  - **output_mapping**: Extracts `weather.description` from the response into `WEATHER_TEXT`.
 
-#### Global Variable Security
-- Services must explicitly request trust
-- Trust grants must be user-approved
-- Trust status must be persisted securely
-- Trust can be revoked at any time
-- Access must be logged and auditable
+- **Step `postTweet`:**
+  - **format**: `GraphQL`
+  - **definition**: Contains the GraphQL mutation for posting a tweet.
+  - **input_template**: Constructs the `text` variable using `${message}` and `${WEATHER_TEXT}`.
+  - **output_mapping**: Extracts the `tweet_id` from the response.
 
-#### Variable Store Security
-- Must implement secure encryption at rest
-- Must prevent cross-domain access
-- Must enforce trust requirements
-- Must clear temporary variables after use
-- Must protect against replay attacks
+---
 
-### Example Implementation
+## Best Practices
 
-```typescript
-interface VariableStore {
-  // Service Variables
-  setServiceVariable(domain: string, name: string, value: string): Promise<void>;
-  getServiceVariable(domain: string, name: string): Promise<string | null>;
-  
-  // Global Variables
-  setGlobalVariable(name: string, value: string): Promise<void>;
-  getGlobalVariable(name: string): Promise<string | null>;
-  
-  // Trust Management
-  trustService(domain: string): Promise<void>;
-  revokeTrust(domain: string): Promise<void>;
-  isServiceTrusted(domain: string): Promise<boolean>;
-  
-  // Temporary Variables
-  setTempVariable(name: string, value: string): void;
-  getTempVariable(name: string): string | null;
-}
-```
+1. **Include Only Necessary Paths:**
+   - When using OpenAPI in a step, limit the `definition` to only the specific paths and operations required. This avoids ambiguity and keeps the capability definition concise.
+2. **Clarity in Definitions:**
+   - Ensure that the `definition` field in each step is a valid specification according to the declared `format`.
+3. **Consistency:**
+   - Use consistent variable names and placeholder syntax (e.g., `${VARIABLE_NAME}`) across steps for clarity and ease of parsing.
+4. **Security Considerations:**
+   - By including only necessary endpoints, you reduce the risk of unintended or unauthorized API calls.
+5. **Documentation:**
+   - Provide sufficient comments or descriptions within the capability definition to aid understanding and maintenance.
+---
 
-### Service Definition Extensions
-
-Service definitions must specify variable requirements:
-
-```yaml
-serviceName: "ExampleService"
-domain: "api.example.com"
-variables:
-  required:
-    service:
-      - name: "AUTH_TOKEN"
-        description: "Authentication token"
-        format: "Bearer token"
-        encryption: true
-    
-  optional:
-    global:
-      - name: "USER_EMAIL"
-        description: "User's email address"
-        requiresTrust: true
-    
-    temporary:
-      - name: "QUERY"
-        description: "Search query"
-        format: "string"
-```
-
-### Variable Resolution Flow
-
-1. **Service Variable Resolution**
-   ```mermaid
-   graph TD
-       A[Request Starts] --> B{Check Service Variables}
-       B -->|Not Found| C[Prompt User]
-       B -->|Found| D{Verify Domain}
-       C --> E[Encrypt and Store]
-       D -->|Match| F[Use Variable]
-       D -->|No Match| G[Access Denied]
-   ```
-
-2. **Global Variable Resolution**
-   ```mermaid
-   graph TD
-       A[Request Global] --> B{Check Trust}
-       B -->|Trusted| C[Return Variable]
-       B -->|Not Trusted| D[Request Trust]
-       D --> E{User Approves}
-       E -->|Yes| F[Grant Access]
-       E -->|No| G[Deny Access]
-   ```
-
-### Implementation Guidelines
-
-1. **Variable Storage**
-   - Use secure storage mechanisms
-   - Implement domain-specific encryption
-   - Clear temporary variables reliably
-   - Protect against unauthorized access
-
-2. **Trust Management**
-   - Implement clear trust UI/UX
-   - Store trust grants securely
-   - Handle trust revocation
-   - Audit trust usage
-
-3. **Error Handling**
-   - Handle missing variables gracefully
-   - Provide clear error messages
-   - Implement retry mechanisms
-   - Log security violations
-
-### Best Practices
-
-1. **Service Variables**
-   - Always use domain-specific encryption
-   - Implement secure key derivation
-   - Clear on domain mismatch
-   - Audit access attempts
-
-2. **Global Variables**
-   - Minimize trust grants
-   - Clear documentation of usage
-   - Regular trust review
-   - Secure trust storage
-
-3. **Temporary Variables**
-   - Clear after each request
-   - No persistent storage
-   - Validate all inputs
-   - Scope to current request
-
-4. **General Security**
-   - Regular security audits
-   - Secure key management
-   - Access logging
-   - Update mechanisms
-
-## License
-
-MIT License
