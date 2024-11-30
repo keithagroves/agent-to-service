@@ -49,23 +49,27 @@ A2S addresses several key challenges that AI agents face when interacting with d
 
 ```mermaid
 graph LR
-    C1["description: Get weather and post to Twitter
-    inputs: location, date
-    outputs: tweet_id
-    cached_specs: {weather_spec, twitter_spec}"]
-    
-    C2["description: Just get weather forecast
-    inputs: location, date
-    outputs: temperature, conditions
-    cached_specs: {weather_spec}"]
-    
-    S1["WeatherService
-    domain: api.weather.com
-    format: OpenAPI"]
-    
-    S2["TwitterAPI
-    domain: twitter.com
-    format: OpenAPI"]
+    subgraph Capabilities
+        C1["description: Get weather and post to Twitter
+        inputs: location, date
+        outputs: tweet_id
+        cached_specs: {weather_spec, twitter_spec}"]
+        
+        C2["description: Just get weather forecast
+        inputs: location, date
+        outputs: temperature, conditions
+        cached_specs: {weather_spec}"]
+    end
+
+    subgraph Services
+        S1["WeatherService
+        domain: api.weather.com
+        format: OpenAPI"]
+        
+        S2["TwitterAPI
+        domain: twitter.com
+        format: OpenAPI"]
+    end
 
     C1 --- S1
     C1 --- S2
