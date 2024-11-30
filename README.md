@@ -426,51 +426,6 @@ domains:
 version: "1.0"
 checksum: "<calculated_checksum>"
 
-info:
-  title: "WeatherAlertCapability"
-  version: "1.0.0"
-  description: "Monitors weather and sends alerts through multiple channels when severe conditions are detected"
-  author:
-    name: "Jane Smith"
-    email: "jane.smith@example.com"
-    organization: "Weather Systems Inc."
-    url: "https://weathersystems.example.com"
-  contact:
-    name: "Weather Systems Support"
-    email: "support@weathersystems.example.com"
-    url: "https://support.weathersystems.example.com"
-  license:
-    name: "MIT"
-    url: "https://opensource.org/licenses/MIT"
-  documentation:
-    description: "Detailed documentation about this capability"
-    url: "https://docs.weathersystems.example.com/capabilities/weather-alert"
-    version: "1.0.0"
-  tags:
-    - "weather"
-    - "alerts"
-    - "monitoring"
-  metadata:
-    created: "2024-03-15T14:30:00Z"
-    updated: "2024-03-20T09:15:00Z"
-    stability: "stable"
-    deprecated: false
-    replacement: null
-  security:
-    contact:
-      name: "Security Team"
-      email: "security@weathersystems.example.com"
-      url: "https://security.weathersystems.example.com"
-    requirements:
-      authentication: true
-      encryption: true
-  termsOfService: "https://weathersystems.example.com/terms"
-  externalDocs:
-    - description: "API Documentation"
-      url: "https://api.weathersystems.example.com/docs"
-    - description: "Integration Guide"
-      url: "https://docs.weathersystems.example.com/integration"
-
 dependencies:
   - capability: "GetWeatherAlert"
     version: "^1.0.0"
@@ -534,41 +489,6 @@ output:
     message: "${alert_message}"
     time: "${alert_time}"
   notifications: "${notification_ids}"
-
-requirements:
-  GetWeatherAlert:
-    inputs:
-      - name: "location"
-        type: "string"
-      - name: "check_severity"
-        type: "boolean"
-    outputs:
-      - name: "severity"
-        type: "string"
-      - name: "description"
-        type: "string"
-      - name: "timestamp"
-        type: "string"
-
-  PostSocialUpdate:
-    inputs:
-      - name: "platform"
-        type: "string"
-      - name: "message"
-        type: "string"
-    outputs:
-      - name: "post_id"
-        type: "string"
-
-  SendTelegramMessage:
-    inputs:
-      - name: "chat_id"
-        type: "string"
-      - name: "message"
-        type: "string"
-    outputs:
-      - name: "message_id"
-        type: "string"
 ```
 
 **Explanation:**
