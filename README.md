@@ -170,6 +170,7 @@ domains:
   - "<domain2>"
 version: "<capability_version>"
 checksum: "<checksum_value>"
+author: "<list_of_authors>"
 ```
 
 - **`a2s`**: Specifies the A2S protocol version the capability adheres to.
@@ -224,8 +225,9 @@ domains:
   - "dogapi.dog"
 version: "1.0"
 checksum: "<calculated_checksum>"
+authors:
+  - name: "Jane Smith"
 
-execution:
   type: sequence
   steps:
     - id: "listBreeds"
@@ -324,7 +326,8 @@ domains:
   - "api.twitter.com"
 version: "1.0"
 checksum: "<calculated_checksum>"
-
+authors:
+  - name: "Alex Johnson"
 patterns:
   parameters:
     - name: "location"
@@ -425,6 +428,11 @@ domains:
   - "api.telegram.org"
 version: "1.0"
 checksum: "<calculated_checksum>"
+authors:
+  - name: "Jane Smith"
+    email: "jane.smith@example.com"
+    organization: "Weather Systems Inc."
+    github: "janesmith2"
 
 dependencies:
   - capability: "GetWeatherAlert"
