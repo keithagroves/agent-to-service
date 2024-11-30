@@ -611,7 +611,7 @@ interface SelectionStrategy {
 
 ## Coming Soon:
 
-### Future implementations:
+### Future sdk implementations:
 
 ```python
 # Python implementation
