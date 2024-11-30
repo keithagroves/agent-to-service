@@ -22,7 +22,7 @@ A2S addresses several key challenges that AI agents face when interacting with d
 
 - 🌍 **Language Agnostic**: Implement A2S in any programming language
 - 🔍 **Dynamic Service Discovery**: Find and integrate services at runtime
-- 🔄 **Protocol Agnostic**: Support for REST, GraphQL, AsyncAPI, and custom protocols
+- 🔄 **Communication Protocol Agnostic**: Support for REST through OpenAPI, GraphQL, AsyncAPI, and others.
 - 🔐 **Built-in Security**: Standardized authentication and authorization
 - 📦 **State Management**: Handle execution state across multiple services
 
@@ -36,13 +36,13 @@ A2S addresses several key challenges that AI agents face when interacting with d
 const query = "What's the weather like in Paris, and can you tweet it saying 'Weather update:'?";
 
 // Select registry
-const defaultRegistry = new A2SRegistry("https://reptar.ai");
+const defaultRegistry = new A2SRegistry("https://registry.example.com");
 
-// Agent handles the request
+// create an agent
 const agent = new A2SAgent();
-
 agent.useRegistries([defaultRegistry]);
 
+// handle user's query
 agent.handleRequest(query);
 ```
 
@@ -71,7 +71,7 @@ async handleRequest(query: string) {
         continue;
       }
 
-      // 4. Resolve state
+      // 4. Resolve state. (E.g. provide any needed parameters for a request.)
       const stateStore = new StateStore();
       await this.resolveState(capability, stateStore);
 
@@ -94,12 +94,14 @@ async handleRequest(query: string) {
 
 ### Dynamic Protocol Support
 
-A2S is designed to be flexible and protocol-agnostic. Each **step** within a capability specifies the format of its interaction, which can be:
+A2S is designed to be flexible and communication-protocol-agnostic. Each **step** within a capability specifies the format of its interaction, which can be:
 
 - **OpenAPI**: For RESTful APIs.
+
+In the future it could also potentially support:
 - **GraphQL**: For flexible queries and mutations.
 - **AsyncAPI**: For event-driven architectures.
-- **Custom**: For any other interaction patterns or proprietary protocols.
+- **Custom**: For any other interaction patterns or proprietary communication protocols.
 
 This dynamic support allows agents to interact with a wide range of services seamlessly, even within a single capability execution.
 
@@ -126,10 +128,11 @@ author: "<list_of_authors>"
 - **`domains`**: A list of domains that the capability interacts with.
 - **`version`**: The version of the capability itself.
 - **`checksum`**: A cryptographic hash (e.g., SHA-256) of the capability definition, excluding the `checksum` field itself.
+- **`authors`**: credits to the creators and contributors
 
 ### Execution Section
 
-Since each document represents a single capability, we include an `execution` section directly in the capability definition. This section contains all the necessary details for executing the capability.
+We include an `execution` section directly in the capability definition. This section contains all the necessary details for executing the capability.
 
 #### Execution Steps with Individual Formats
 
@@ -147,7 +150,7 @@ steps:
     output_mapping: {}      # Optional
 ```
 
-By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services regardless of their underlying protocols.
+By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services.
 
 ---
 
@@ -491,7 +494,9 @@ output:
 - **Output**: Defines the outputs of the capability.
 - **Requirements**: Specifies input and output requirements for dependent capabilities.
 
+---
 
+![A2S Flow](diagram.png)
 
 ## Registry Architecture
 
