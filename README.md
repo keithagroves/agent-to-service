@@ -5,27 +5,6 @@
 
 A2S is a protocol that enables AI agents to discover and execute capabilities at runtime through standardized capability definitions. It allows for discovery at both the service and capability levels, enabling agents to find and execute specific capabilities across multiple services dynamically.
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Architecture](#architecture)
-- [Example Usage](#example-usage)
-  - [Initializing an Agent](#initializing-an-agent)
-- [Core Concepts](#core-concepts)
-  - [Dynamic Protocol Support](#dynamic-protocol-support)
-  - [Capability Header](#capability-header)
-  - [Execution Section](#execution-section)
-  - [Step Format](#step-format)
-- [Creating Capabilities](#creating-capabilities)
-  - [Capability Definition](#capability-definition)
-  - [Including Only the Necessary Path](#including-only-the-necessary-path)
-  - [Incorporating Multiple Steps with Different Formats](#incorporating-multiple-steps-with-different-formats)
-- [Capability Chaining](#capability-chaining)
-- [Best Practices](#best-practices)
-- [Contributing](#contributing)
-- [License](#license)
-
----
 
 ## Introduction
 
@@ -47,38 +26,6 @@ A2S addresses several key challenges that AI agents face when interacting with d
 - 🔐 **Built-in Security**: Standardized authentication and authorization
 - 📦 **State Management**: Handle execution state across multiple services
 
-## Architecture
-
-```mermaid
-graph LR
-    Agent[("AI Agent\nquery: Get weather and post to Twitter")]
-
-    subgraph Capabilities
-        C1["description: Get weather and post to Twitter\ninputs: location, date\noutputs: tweet_id\ncached_specs: {weather_spec, twitter_spec}"]
-        
-        C2["description: Just get weather forecast\ninputs: location, date\noutputs: temperature, conditions\ncached_specs: {weather_spec}"]
-    end
-
-    subgraph Services
-        S1["WeatherService\ndomain: api.weather.com\nformat: OpenAPI"]
-        
-        S2["TwitterAPI\ndomain: twitter.com\nformat: OpenAPI"]
-    end
-
-    Agent -->|vector search| C1
-    Agent -.->|could match| C2
-    C1 --- S1
-    C1 --- S2
-    C2 --- S1
-
-    classDef capability fill:#2ecc71,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef service fill:#3498db,stroke:#fff,stroke-width:2px,color:#fff;
-    classDef agent fill:#e74c3c,stroke:#fff,stroke-width:2px,color:#fff;
-    
-    class C1,C2 capability;
-    class S1,S2 service;
-    class Agent agent;
-```
 
 ## Example Usage
 
@@ -203,6 +150,40 @@ steps:
 By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services regardless of their underlying protocols.
 
 ---
+
+
+## Architecture
+
+```mermaid
+graph LR
+    Agent[("AI Agent\nquery: Get weather and post to Twitter")]
+
+    subgraph Capabilities
+        C1["description: Get weather and post to Twitter\ninputs: location, date\noutputs: tweet_id\ncached_specs: {weather_spec, twitter_spec}"]
+        
+        C2["description: Just get weather forecast\ninputs: location, date\noutputs: temperature, conditions\ncached_specs: {weather_spec}"]
+    end
+
+    subgraph Services
+        S1["WeatherService\ndomain: api.weather.com\nformat: OpenAPI"]
+        
+        S2["TwitterAPI\ndomain: twitter.com\nformat: OpenAPI"]
+    end
+
+    Agent -->|vector search| C1
+    Agent -.->|could match| C2
+    C1 --- S1
+    C1 --- S2
+    C2 --- S1
+
+    classDef capability fill:#2ecc71,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef service fill:#3498db,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef agent fill:#e74c3c,stroke:#fff,stroke-width:2px,color:#fff;
+    
+    class C1,C2 capability;
+    class S1,S2 service;
+    class Agent agent;
+```
 
 ## Creating Capabilities
 
