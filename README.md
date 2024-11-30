@@ -48,59 +48,34 @@ A2S addresses several key challenges that AI agents face when interacting with d
 ## Architecture
 
 ```mermaid
-
 graph LR
-
     C1["description: Get weather and post to Twitter
-
     inputs: location, date
-
     outputs: tweet_id
-
     cached_specs: {weather_spec, twitter_spec}"]
-
     
-
     C2["description: Just get weather forecast
-
     inputs: location, date
-
     outputs: temperature, conditions
-
     cached_specs: {weather_spec}"]
-
     
-
     S1["WeatherService
-
     domain: api.weather.com
-
     format: OpenAPI"]
-
     
-
     S2["TwitterAPI
-
     domain: twitter.com
-
     format: OpenAPI"]
 
     C1 --- S1
-
     C1 --- S2
-
     C2 --- S1
 
     classDef capability fill:#2ecc71,stroke:#fff,stroke-width:2px,color:#fff;
-
     classDef service fill:#3498db,stroke:#fff,stroke-width:2px,color:#fff;
-
     
-
     class C1,C2 capability;
-
     class S1,S2 service;
-
 ```
 
 
