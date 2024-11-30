@@ -602,6 +602,103 @@ requirements:
 
 ---
 
+## Registry Architecture
+
+The A2S Registry serves as a central hub for capability discovery, enabling agents to find and utilize relevant capabilities based on their intent. The registry uses a combination of graph database (Neo4j) and vector search to efficiently match agent intents with available capabilities.
+
+### Registry Architecture Overview
+
+```mermaid
+graph TB
+    Agent[AI Agent] -->|Intent Query| SearchEndpoint[Registry Search Endpoint]
+    SearchEndpoint -->|Vector Search| Neo4j[(Neo4j Database)]
+    
+    subgraph Neo4j Database
+        Services[Services] -->|Provides| Capabilities[Capabilities]
+        Capabilities -->|Depends On| Dependencies[Dependencies]
+        Capabilities -->|Stores| Vectors[Embedding Vectors]
+        Capabilities -->|Records| Usage[Usage Statistics]
+    end
+    
+    SearchEndpoint -->|Ranked Results| Agent
+```
+
+### Capability Discovery Process
+
+1. **Intent Submission**
+   - Agents submit their intended action to the registry's search endpoint
+   - The intent is converted into a vector embedding for semantic matching
+
+2. **Vector Search**
+   - The registry performs a vector similarity search against capability descriptions
+   - Search happens within Neo4j, utilizing its vector search capabilities
+   - Results are ranked by semantic similarity to the original intent
+
+3. **Graph-Enhanced Results**
+   - Results can be enriched using graph relationships
+   - Dependencies and related capabilities are easily accessible
+   - Service metadata can influence ranking
+
+4. **Selection Strategy**
+   The default strategy ranks capabilities based on:
+   - Vector distance from the intent (primary factor)
+   - Historical success rate
+   - Usage statistics
+   - Capability complexity (number of steps)
+   - Required permissions
+
+### Example Search Response
+
+```json
+{
+  "capabilities": [
+    {
+      "id": "weather-alert-capability",
+      "score": 0.92,
+      "description": "Monitors weather and sends alerts through multiple channels",
+      "usage_count": 1250,
+      "success_rate": 0.98,
+      "complexity": "medium",
+      "required_permissions": ["weather:read", "notifications:write"]
+    },
+    // Additional matching capabilities...
+  ],
+  "metadata": {
+    "total_matches": 5,
+    "search_time_ms": 45
+  }
+}
+```
+
+### Registry Features
+
+- **Real-time Updates**: Services can dynamically register and update their capabilities
+- **Dependency Tracking**: Graph structure makes it easy to track and validate capability dependencies
+- **Usage Analytics**: Stores execution statistics to inform future capability selection
+- **Vector Indexing**: Optimized for fast semantic search across large capability sets
+- **Fallback Strategies**: Supports multiple selection strategies when primary matches fail
+
+### Custom Selection Strategies
+
+Agents can provide custom selection strategies by specifying weights for different factors:
+
+```typescript
+interface SelectionStrategy {
+  vectorSimilarity: number;  // 0-1 weight for semantic matching
+  successRate: number;       // 0-1 weight for historical success
+  usageCount: number;        // 0-1 weight for popularity
+  complexity: number;        // 0-1 weight for step complexity
+  // Additional weighted factors...
+}
+```
+
+### Future Enhancements
+
+- Capability composition suggestions based on historical patterns
+- Dynamic reranking based on real-time service health
+- Automated capability testing and validation
+- Enhanced analytics for capability usage patterns
+
 ## Coming Soon:
 
 ### Future implementations:
