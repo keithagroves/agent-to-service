@@ -227,7 +227,7 @@ version: "1.0"
 checksum: "<calculated_checksum>"
 authors:
   - name: "Jane Smith"
-
+execution:
   type: sequence
   steps:
     - id: "listBreeds"
