@@ -90,9 +90,6 @@ graph LR
     class Agent agent;
 ```
 
-
-By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services regardless of their underlying protocols.
-
 ---
 
 ## Core Concepts
@@ -116,6 +113,7 @@ Each capability definition begins with a header containing essential metadata:
 a2s: "<protocol_version>"
 name: "<capability_name>"
 description: "<capability_description>"
+charset: "utf-8"
 domains:
   - "<domain1>"
   - "<domain2>"
@@ -129,6 +127,20 @@ checksum: "<checksum_value>"
 - **`domains`**: A list of domains that the capability interacts with.
 - **`version`**: The version of the capability itself.
 - **`checksum`**: A cryptographic hash (e.g., SHA-256) of the capability definition, excluding the `checksum` field itself.
+
+
+## Step format
+steps:
+  - id: "<step_id>"
+    type: "<step_type>"  # Required: "capability", "sequence", "parallel", "condition"
+    format: "<format>"   # Required for direct execution steps
+    definition: {}       # Required for direct execution steps
+    input_mapping: {}    # Optional
+    output_mapping: {}   # Optional
+
+
+By focusing on **capabilities** and supporting **dynamic protocol specifications**, A2S simplifies the way agents discover and execute tasks, allowing for efficient and secure interactions with services regardless of their underlying protocols.
+
 
 ### Execution Section
 
@@ -154,6 +166,7 @@ Let's illustrate how to define a step using the OpenAPI specification, including
 
 ```yaml
 a2s: "1.0.0"
+charset: "utf-8"
 name: "ListDogBreeds"
 description: "Retrieve a list of dog breeds"
 domains:
@@ -350,6 +363,217 @@ execution:
 
 ---
 
+
+# Capability Chaining:
+```
+a2s: "1.0.0"
+name: "WeatherAlertSystem"
+description: "Monitors weather and sends alerts through multiple channels when severe conditions are detected"
+domains:
+  - "api.weather.com"
+  - "api.twitter.com"
+  - "api.telegram.org"
+version: "1.0"
+checksum: "<calculated_checksum>"
+```
+
+# Define capabilities that this one depends on
+```
+dependencies:
+  - capability: "GetWeatherAlert"
+    version: "^1.0.0"
+    checksum: "<dependency_checksum>"
+  - capability: "PostSocialUpdate"
+    version: "^2.0.0"
+    checksum: "<dependency_checksum>"
+  - capability: "SendTelegramMessage"
+    version: "^1.2.0"
+    checksum: "<dependency_checksum>"
+
+execution:
+  type: sequence
+  variables:
+    shared:
+      location: string
+      alert_severity: string
+      alert_message: string
+      notification_ids: object
+    
+  steps:
+    # Get weather alert using referenced capability
+    - id: "checkWeather"
+      type: "capability"
+      use: "GetWeatherAlert"
+      input_mapping:
+        location: "${location}"
+        check_severity: true
+      output_mapping:
+        alert_severity: "$.severity"
+        alert_message: "$.description"
+        alert_time: "$.timestamp"
+
+    # Conditional execution based on severity
+    - id: "evaluateAlert"
+      type: "condition"
+      condition: "${alert_severity} in ['severe', 'extreme']"
+      if_true:
+        # Execute multiple capabilities in parallel for notifications
+        - id: "sendAlerts"
+          type: "parallel"
+          steps:
+            - id: "tweetAlert"
+              type: "capability"
+              use: "PostSocialUpdate"
+              input_mapping:
+                platform: "twitter"
+                message: "WEATHER ALERT for ${location}: ${alert_message}"
+              output_mapping:
+                notification_ids.twitter: "$.post_id"
+
+            - id: "telegramAlert"
+              type: "capability"
+              use: "SendTelegramMessage"
+              input_mapping:
+                chat_id: "${TELEGRAM_CHAT_ID}"
+                message: "🚨 ${alert_severity} ALERT 🚨\nLocation: ${location}\n${alert_message}\nTime: ${alert_time}"
+              output_mapping:
+                notification_ids.telegram: "$.message_id"
+```
+
+# Define capability outputs
+  output:
+    alert_info:
+      severity: "${alert_severity}"
+      message: "${alert_message}"
+      time: "${alert_time}"
+    notifications: "${notification_ids}"
+
+# Define requirements for dependent capabilities
+requirements:
+  GetWeatherAlert:
+    inputs:
+      - location: string
+      - check_severity: boolean
+    outputs:
+      - severity: string
+      - description: string
+      - timestamp: string
+
+  PostSocialUpdate:
+    inputs:
+      - platform: string
+      - message: string
+    outputs:
+      - post_id: string
+
+  SendTelegramMessage:
+    inputs:
+      - chat_id: string
+      - message: string
+    outputs:
+      - message_id: string
+
+a2s: "1.0.0"
+info:
+  title: "Example Weather Alert Capability"
+  version: "1.0.0"
+  description: "A capability that monitors weather conditions and sends alerts"
+  author:
+    name: "Jane Smith"
+    email: "jane.smith@example.com"
+    organization: "Weather Systems Inc."
+    url: "https://weathersystems.example.com"
+  contact:
+    name: "Weather Systems Support"
+    email: "support@weathersystems.example.com"
+    url: "https://support.weathersystems.example.com"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+  documentation:
+    description: "Detailed documentation about this capability"
+    url: "https://docs.weathersystems.example.com/capabilities/weather-alert"
+    version: "1.0.0"
+  tags:
+    - "weather"
+    - "alerts"
+    - "monitoring"
+  metadata:
+    created: "2024-03-15T14:30:00Z"
+    updated: "2024-03-20T09:15:00Z"
+    stability: "stable"
+    deprecated: false
+    replacement: null  # URL to replacement if deprecated
+  security:
+    contact:
+      name: "Security Team"
+      email: "security@weathersystems.example.com"
+      url: "https://security.weathersystems.example.com"
+    requirements:
+      authentication: true
+      encryption: true
+  termsOfService: "https://weathersystems.example.com/terms"
+  externalDocs:
+    - description: "API Documentation"
+      url: "https://api.weathersystems.example.com/docs"
+    - description: "Integration Guide"
+      url: "https://docs.weathersystems.example.com/integration"
+
+name: "WeatherAlertCapability"
+charset: "utf-8"
+
+# other important fields
+```
+a2s: "1.0.0"
+info:
+  title: "Example Weather Alert Capability"
+  version: "1.0.0"
+  description: "A capability that monitors weather conditions and sends alerts"
+  author:
+    name: "Jane Smith"
+    email: "jane.smith@example.com"
+    organization: "Weather Systems Inc."
+    url: "https://weathersystems.example.com"
+  contact:
+    name: "Weather Systems Support"
+    email: "support@weathersystems.example.com"
+    url: "https://support.weathersystems.example.com"
+  license:
+    name: "MIT"
+    url: "https://opensource.org/licenses/MIT"
+  documentation:
+    description: "Detailed documentation about this capability"
+    url: "https://docs.weathersystems.example.com/capabilities/weather-alert"
+    version: "1.0.0"
+  tags:
+    - "weather"
+    - "alerts"
+    - "monitoring"
+  metadata:
+    created: "2024-03-15T14:30:00Z"
+    updated: "2024-03-20T09:15:00Z"
+    stability: "stable"
+    deprecated: false
+    replacement: null  # URL to replacement if deprecated
+  security:
+    contact:
+      name: "Security Team"
+      email: "security@weathersystems.example.com"
+      url: "https://security.weathersystems.example.com"
+    requirements:
+      authentication: true
+      encryption: true
+  termsOfService: "https://weathersystems.example.com/terms"
+  externalDocs:
+    - description: "API Documentation"
+      url: "https://api.weathersystems.example.com/docs"
+    - description: "Integration Guide"
+      url: "https://docs.weathersystems.example.com/integration"
+
+name: "WeatherAlertCapability"
+charset: "utf-8"
+```
+
 ## Best Practices
 
 1. **Include Only Necessary Paths:**
@@ -364,3 +588,64 @@ execution:
    - Provide sufficient comments or descriptions within the capability definition to aid understanding and maintenance.
 ---
 
+### code example: initializing an agent
+```typescript
+// User query to agent
+const query = "What's the weather like in Paris, and can you tweet it saying 'Weather update:'?";
+
+// Select registry
+const defaultRegistry = new A2SRegistry("https://reptar.ai");
+
+// Agent handles the request
+const agent = new A2SAgent();
+
+agent.useRegistries([defaultRegistry]);
+
+agent.handleRequest(query);
+```
+
+
+```typescript
+async handleRequest(query: string) {
+    // 1. Extract intent and parameters
+    const { intents, parameters } = this.parseQuery(query);
+
+    const args = {
+      stragtegy: "highest_score"
+    }; // optional args
+
+    // 2. Find relevant capabilities
+    const capabilities = await registry.searchCapabilities(intents, args); 
+
+    if (capabilities.length === 0) {
+      console.log('No capabilities found matching your query.');
+      return;
+    }
+
+
+    // for each capability
+    for (const capability of capabilities) {
+      // 4. Verify capability integrity
+      if (!this.verifyChecksum(capability)) {
+        console.error('Capability checksum verification failed.');
+        continue;
+      }
+
+      // 5. Resolve state
+      const stateStore = new StateStore();
+      await this.resolveState(capability, stateStore);
+
+      // 6. Execute capability
+      const executor = new CapabilityExecutor(stateStore);
+      const response = await executor.executeCapability(capability);
+
+      // 7. Process response
+      const finalResponse = this.processResponse(response);
+
+      // 8. Provide feedback
+      console.log('Final Response to User:', finalResponse);
+    }
+    // 8. Provide feedback
+    console.log('Final Response to User:', finalResponse);
+  }
+```
