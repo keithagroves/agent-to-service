@@ -27,7 +27,54 @@ A2S addresses several key challenges that AI agents face when interacting with d
 - 📦 **State Management**: Handle execution state across multiple services
 
 
-## Example Usage
+## Example
+
+```
+┌──────────────────────────── A2S Chat Session ────────────────────────────┐
+
+➜ user@a2s: start-chat
+
+   [INFO] Initializing chat session...
+   [INFO] Chat session started
+
+👤 [USER] > Hey, I'm planning a picnic this weekend in Central Park. Could 
+           you help me check the weather forecast and share it on Twitter?
+
+🤖 [AGENT] > [SYSTEM] Analyzing request...
+   [AGENT] > [SYSTEM] Searching A2S Registry for matching capabilities...
+   [AGENT] > Found capability: PostWeatherTweet
+            └─ Compatible with: Weather API, Twitter API
+
+   [AGENT] > Task breakdown:
+            ├─ 1. Get weather forecast for Central Park
+            └─ 2. Create and post tweet with weather information
+
+   [AGENT] > Would you like me to add any specific message along with the 
+            weather update in the tweet?
+
+👤 [USER] > Yes please. Could you mention it's for a weekend picnic?
+
+🤖 [AGENT] > [EXEC] Running PostWeatherTweet capability...
+   
+   [AGENT] > [DEBUG] getWeather:
+            │ location="Central Park"
+            └ status=SUCCESS
+   
+   [AGENT] > [DEBUG] postTweet:
+            │ message="Weekend picnic weather update for Central Park: 
+            │         ${WEATHER_TEXT} 🧺☀️"
+            └ status=SUCCESS
+   
+   [AGENT] > [OUTPUT] Tweet posted:
+            ├─ ID: 129384756
+            └─ Content: "Weekend picnic weather update for Central Park: 
+                       Sunny with light clouds, high of 75°F (24°C). 
+                       Perfect picnic weather! 🧺☀️"
+
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## SDK Example
 
 ### Initializing an Agent
 
@@ -501,23 +548,6 @@ output:
 ## Registry Architecture
 
 The A2S Registry serves as a central hub for capability discovery, enabling agents to find and utilize relevant capabilities based on their intent. The registry uses a combination of graph database (Neo4j) and vector search to efficiently match agent intents with available capabilities.
-
-### Registry Architecture Overview
-
-```mermaid
-graph TB
-    Agent[AI Agent] -->|Intent Query| SearchEndpoint[Registry Search Endpoint]
-    SearchEndpoint -->|Vector Search| Neo4j[(Neo4j Database)]
-    
-    subgraph Neo4j Database
-        Services[Services] -->|Provides| Capabilities[Capabilities]
-        Capabilities -->|Depends On| Dependencies[Dependencies]
-        Capabilities -->|Stores| Vectors[Embedding Vectors]
-        Capabilities -->|Records| Usage[Usage Statistics]
-    end
-    
-    SearchEndpoint -->|Ranked Results| Agent
-```
 
 ### Capability Discovery Process
 
