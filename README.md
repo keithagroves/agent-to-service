@@ -39,6 +39,14 @@ A2S addresses several key challenges that AI agents face when interacting with d
 
 ---
 
+## Key Features
+
+- 🌍 **Language Agnostic**: Implement A2S in any programming language
+- 🔍 **Dynamic Service Discovery**: Find and integrate services at runtime
+- 🔄 **Protocol Agnostic**: Support for REST, GraphQL, AsyncAPI, and custom protocols
+- 🔐 **Built-in Security**: Standardized authentication and authorization
+- 📦 **State Management**: Handle execution state across multiple services
+
 ## Architecture
 
 ```mermaid
@@ -594,13 +602,40 @@ requirements:
 
 ---
 
-## Contributing
+## Coming Soon:
 
-Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) before getting started.
+### Future implementations:
+
+```python
+# Python implementation
+from a2s import A2SRegistry, A2SAgent
+
+registry = A2SRegistry("https://registry.example.com")
+agent = A2SAgent()
+```
+
+```typescript
+// TypeScript implementation
+import { A2SRegistry, A2SAgent } from '@a2s/core';
+
+const registry = new A2SRegistry("https://registry.example.com");
+const agent = new A2SAgent();
+```
+
+```go
+// Go implementation
+import "github.com/a2s/core"
+
+registry := a2s.NewRegistry("https://registry.example.com")
+agent := a2s.NewAgent()
+```
+
 
 ---
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+
 
