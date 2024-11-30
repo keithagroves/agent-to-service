@@ -10,22 +10,15 @@ A2S is a protocol that enables AI agents to discover and execute capabilities at
 
 A2S addresses several key challenges that AI agents face when interacting with diverse web services:
 
-1. **Capability Discovery**: How agents find relevant capabilities across services.
-2. **Service Integration**: How services expose their capabilities in various formats.
-3. **Execution Flow**: How agents coordinate multiple capabilities for complex tasks.
-4. **State Management**: Secure handling of state, including variables and data across services.
-5. **Security**: Ensuring secure interactions with services, including authentication and data protection.
+## Core Features
 
----
+- 🌍 **Language Agnostic**: Build in any programming language
 
-## Key Features
+- 🔍 **Dynamic Discovery**: Find and discover capabilities at runtime
 
-- 🌍 **Language Agnostic**: Implement A2S in any programming language
-- 🔍 **Dynamic Service Discovery**: Find and integrate services at runtime
-- 🔄 **Communication Protocol Agnostic**: Support for REST through OpenAPI, GraphQL, AsyncAPI, and others.
-- 🔐 **Built-in Security**: Standardized authentication and authorization
-- 📦 **State Management**: Handle execution state across multiple services
+- 🔄 **Communication Protocol Flexibility**: Support for REST, OpenAPI, and more
 
+- 📦 **Secure State Management**: Securely andle data and variables across services
 
 ## Example
 
