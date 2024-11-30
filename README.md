@@ -305,8 +305,9 @@ authors:
 By limiting the OpenAPI specification to only the relevant path and operation, we ensure:
 
 - **Clarity**: The agent knows exactly which endpoint to call without ambiguity.
-- **Efficiency**: The capability definition remains concise and focused.
-- **Security**: Reduces the risk of unintended API calls to other endpoints.
+- **Usability**: The execution follows existing well supported formats.
+- **Portability**: The step can easily be shared with other cababilities.
+
 
 ---
 
