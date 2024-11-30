@@ -581,26 +581,7 @@ requirements:
 - **Output**: Defines the outputs of the capability.
 - **Requirements**: Specifies input and output requirements for dependent capabilities.
 
----
 
-## Best Practices
-
-1. **Include Only Necessary Paths**:
-   - When using OpenAPI in a step, limit the `definition` to only the specific paths and operations required. This avoids ambiguity and keeps the capability definition concise.
-
-2. **Clarity in Definitions**:
-   - Ensure that the `definition` field in each step is a valid specification according to the declared `format`.
-
-3. **Consistency**:
-   - Use consistent variable names and placeholder syntax (e.g., `${VARIABLE_NAME}`) across steps for clarity and ease of parsing.
-
-4. **Security Considerations**:
-   - By including only necessary endpoints, you reduce the risk of unintended or unauthorized API calls.
-
-5. **Documentation**:
-   - Provide sufficient comments or descriptions within the capability definition to aid understanding and maintenance.
-
----
 
 ## Registry Architecture
 
