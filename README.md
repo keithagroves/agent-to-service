@@ -49,6 +49,10 @@ A2S addresses several key challenges that AI agents face when interacting with d
 
 ```mermaid
 graph LR
+    Agent[("AI Agent
+    query: Get weather 
+    and post to Twitter")]
+
     subgraph Capabilities
         C1["description: Get weather and post to Twitter
         inputs: location, date
@@ -71,15 +75,19 @@ graph LR
         format: OpenAPI"]
     end
 
+    Agent -->|vector search| C1
+    Agent -.->|could match| C2
     C1 --- S1
     C1 --- S2
     C2 --- S1
 
     classDef capability fill:#2ecc71,stroke:#fff,stroke-width:2px,color:#fff;
     classDef service fill:#3498db,stroke:#fff,stroke-width:2px,color:#fff;
+    classDef agent fill:#e74c3c,stroke:#fff,stroke-width:2px,color:#fff;
     
     class C1,C2 capability;
     class S1,S2 service;
+    class Agent agent;
 ```
 
 
