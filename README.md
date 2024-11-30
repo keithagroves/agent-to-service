@@ -3,7 +3,7 @@
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-A2S is a protocol that enables AI agents to discover and interact with web services through standardized capability definitions. It allows for discovery at both the service and capability levels, enabling agents to find and execute specific capabilities across multiple services dynamically.
+A2S is a protocol that enables AI agents to discover and execute capabilities at runtime through standardized capability definitions. It allows for discovery at both the service and capability levels, enabling agents to find and execute specific capabilities across multiple services dynamically.
 
 ## Table of Contents
 
@@ -643,6 +643,3 @@ agent := a2s.NewAgent()
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
-
-
