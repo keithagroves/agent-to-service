@@ -11,7 +11,8 @@ A2S is a protocol that enables AI agents to discover and execute service capabil
 - 🔍 **Runtime Discovery**: Find and use new capabilities dynamically
 - 🎯 **Single Operation Actions**: Each action maps to exactly one API operation
 - 🔒 **Secure State Management**: Three-tier state management system
-- 🧩 **Agent Decisions**: Built-in support for agent reasoning during execution
+- 🧩 **Flow Control**: Built-in support for conditional execution and agent decisions
+
 
 ## Core Concepts
 
@@ -35,7 +36,6 @@ Tasks orchestrate actions and agent decisions. Types include:
 - `action`: Execute a single API operation
 - `agent_decision`: Let the agent make a choice
 - `condition`: Branch based on a condition
-- `parallel`: Run multiple tasks simultaneously
 
 ### State Management
 Every state value must specify its type and storage level:
@@ -90,16 +90,31 @@ authors:
 checksum: "<calculated_checksum>"
 
 actions:
-  getWeatherAction:
-    format: OpenAPI
-    specification:
-      paths:
-        /weather/{city}:
-          get:
-            parameters:
-              - name: city
-                in: path
-                required: true
+getWeatherAction:
+  format: OpenAPI
+  specification:
+    openapi: 3.0.1
+    info:
+      title: Weather API
+      version: 1.0.0
+    servers:
+      - url: https://api.weather.com
+    paths:
+      /weather/{city}:
+        get:
+          parameters:
+            - name: city
+              in: path
+              required: true
+          responses:
+            '200':
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      temperature:
+                        type: number
 
 execution:
   type: sequence
@@ -182,6 +197,25 @@ execution:
   tasks:
 ```
 
+## advanced
+
+Each task can specify its next task using the next field:
+
+```
+- id: checkAuth
+  type: condition
+  condition: ${!auth_token || auth_token_expired}
+  next:
+    true: getToken
+    false: getWeather
+
+- id: getToken
+  type: action
+  action_ref: #/actions/getTokenAction
+  next: getWeather
+```
+
+
 ## Best Practices
 
 1. **Action Design**
@@ -198,6 +232,8 @@ execution:
    - Clear decision criteria
    - Document context needed
    - Handle all outcomes
+
+   
 
 ## Future Plans
 
