@@ -142,6 +142,9 @@ Tasks orchestrate requests and logic, supporting multiple types:
 - **`agent_decision`**: Allow the agent to make a decision based on available data.
 - **`condition`**: Branch execution based on a condition.
 
+Additional task types for local operations, resource handling, and advanced workflows are under development. See the Future Plans section for upcoming task types and capabilities.
+
+
 #### **Requests**
 Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
 - One endpoint
