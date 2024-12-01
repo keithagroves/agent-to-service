@@ -66,6 +66,120 @@ Capabilities are the fundamental building blocks of A2S, defining how agents int
 Think of capabilities as recipes that tell AI agents exactly how to accomplish specific goals using available services. Just as a recipe lists ingredients and tasks, a capability lists data and tasks required.
 
 
+
+### **Capability Structure**
+Each capability must define essential metadata for discovery and execution:
+```yaml
+a2s: 1.0.0               # Protocol version (required)
+id: "WeatherCapability"  # Unique identifier
+description: "Fetches weather data and evaluates its impact on user activities."
+domains:                 # Supported domains
+  - "api.weather.com"
+version: 1.0.0           # Capability version
+checksum: "<sha256>"     # SHA-256 hash (excluding this field)
+authors:
+  - name: "Author Name"
+execution:
+  type: "sequence"       # sequence|parallel|condition
+  tasks:
+    # Task definitions
+```
+
+
+
+
+
+### **Tasks**
+Tasks orchestrate requests and logic, supporting multiple types:
+- **`request`**: Execute a single API operation.
+- **`agent_decision`**: Allow the agent to make a decision based on available data.
+- **`condition`**: Branch execution based on a condition.
+
+Additional task types for local operations, resource handling, and advanced workflows are under development.
+#### **Requests**
+Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
+- One endpoint
+- One HTTP method
+- A well-defined input/output contract
+
+Example:
+```yaml
+getWeatherRequest:
+  specification:
+    openapi: 3.0.1
+    info:
+      title: Weather API
+      version: 1.0.0
+    servers:
+      - url: https://api.weather.com
+    paths:
+      /weather/{city}:    # Single endpoint
+        get: {}           # Single operation
+```
+
+### **State Management**
+State values are strictly typed and explicitly define their storage level:
+```yaml
+temperature:
+  type: number          # Data types: string, number, boolean, date, object, array
+  value: $.temp         # Direct value or reference
+  storage: temporary    # Levels: service, shared, temporary
+```
+- **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
+- **Shared Variables**: Available across cababilities
+- **Temporary Variables**: Cleared after execution for transient data.
+
+### A2S Registry
+
+The A2S Registries are what agents can query to learn of new capabilities. The default registry is implemented using a graph database with that allows agents to use symantic searches for relevant capabilites. 
+
+Agents can break down user queries into multipl intents and utilize the registry to determine the capabilites that will provide the desired outcome.
+
+---
+
+
+
+
+## **SDK Usage**
+
+### JavaScript / TypeScript
+```typescript
+import { A2SRegistry, A2SAgent } from '@a2s/core';
+
+const registry = new A2SRegistry("https://registry.example.com");
+const agent = new A2SAgent();
+
+agent.useRegistries([registry]);
+
+
+agent.handleRequest(query);
+
+
+// Execute capability in handle Request
+await agent.executeCapabilities(capabilities);
+```
+
+## Creating a new capability
+
+Each capability task begins with a header containing essential metadata:
+
+```yaml
+a2s: "<protocol_version>"
+id: "<capability_id>"
+description: "<capability_description>"
+domains:
+  - "<domain1>"
+  - "<domain2>"
+version: "<capability_version>"
+checksum: "<checksum_value>"
+authors:
+  - name: "<author_name>"
+execution:
+  type: "<execution_type>"
+  tasks:
+```
+
+
 **Example Capability**
 
 ```yaml
@@ -130,116 +244,7 @@ execution:
       description: Evaluate if weather is noteworthy
 ```
 
-### A2S Registry
-
-The A2S Registries are what agents can query to learn of new capabilities. The default registry is implemented using a graph database with that allows agents to use symantic searches for relevant capabilites. 
-
-Agents can break down user queries into multipl intents and utilize the registry to determine the capabilites that will provide the desired outcome.
-
-### **Tasks**
-Tasks orchestrate requests and logic, supporting multiple types:
-- **`request`**: Execute a single API operation.
-- **`agent_decision`**: Allow the agent to make a decision based on available data.
-- **`condition`**: Branch execution based on a condition.
-
-Additional task types for local operations, resource handling, and advanced workflows are under development. See the Future Plans section for upcoming task types and capabilities.
-
-
-#### **Requests**
-Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
-- One endpoint
-- One HTTP method
-- A well-defined input/output contract
-
-Example:
-```yaml
-getWeatherRequest:
-  specification:
-    openapi: 3.0.1
-    info:
-      title: Weather API
-      version: 1.0.0
-    servers:
-      - url: https://api.weather.com
-    paths:
-      /weather/{city}:    # Single endpoint
-        get: {}           # Single operation
-```
-
-### **State Management**
-State values are strictly typed and explicitly define their storage level:
-```yaml
-temperature:
-  type: number          # Data types: string, number, boolean, date, object, array
-  value: $.temp         # Direct value or reference
-  storage: temporary    # Levels: service, shared, temporary
-```
-- **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
-- **Shared Variables**: Available across cababilities
-- **Temporary Variables**: Cleared after execution for transient data.
-
-### **Capability Structure**
-Each capability must define essential metadata for discovery and execution:
-```yaml
-a2s: 1.0.0               # Protocol version (required)
-id: "WeatherCapability"  # Unique identifier
-description: "Fetches weather data and evaluates its impact on user activities."
-domains:                 # Supported domains
-  - "api.weather.com"
-version: 1.0.0           # Capability version
-checksum: "<sha256>"     # SHA-256 hash (excluding this field)
-authors:
-  - name: "Author Name"
-execution:
-  type: "sequence"       # sequence|parallel|condition
-  tasks:
-    # Task definitions
-```
-
-
-
----
-
-## **SDK Usage**
-
-### JavaScript / TypeScript
-```typescript
-import { A2SRegistry, A2SAgent } from '@a2s/core';
-
-const registry = new A2SRegistry("https://registry.example.com");
-const agent = new A2SAgent();
-
-agent.useRegistries([registry]);
-
-
-agent.handleRequest(query);
-
-
-// Execute capability in handle Request
-await agent.executeCapabilities(capabilities);
-```
-
-## Creating a new capability
-
-Each capability task begins with a header containing essential metadata:
-
-```yaml
-a2s: "<protocol_version>"
-id: "<capability_id>"
-description: "<capability_description>"
-domains:
-  - "<domain1>"
-  - "<domain2>"
-version: "<capability_version>"
-checksum: "<checksum_value>"
-authors:
-  - name: "<author_name>"
-execution:
-  type: "<execution_type>"
-  tasks:
-```
-
-## advanced
+## Advanced Features
 
 Each task can specify its next task using the next field:
 
