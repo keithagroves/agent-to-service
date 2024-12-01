@@ -1,82 +1,96 @@
 # Agent-to-Service Protocol (A2S)
 
-![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)
+![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)  
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-A2S is a protocol that enables AI agents to discover and execute service capabilities at runtime. It defines how agents can find services, understand their capabilities, and securely interact with them.
+The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find services, understand their capabilities, and securely interact with them, making it a powerful framework for integrating AI with APIs.
 
-## Key Features
+---
 
-- 🤖 **Agent-First Design**: Built for AI agents to understand and use services
-- 🔍 **Runtime Discovery**: Find and use new capabilities dynamically
-- 🎯 **Single Operation Actions**: Each action maps to exactly one API operation
-- 🔒 **Secure State Management**: Three-tier state management system
-- 🧩 **Flow Control**: Built-in support for conditional execution and agent decisions
+## **Key Features**
 
+### 🤖 **Agent-First Design**
+Built specifically for AI agents to understand, utilize, and orchestrate API services seamlessly.
 
-## Core Concepts
+### 🔍 **Dynamic Runtime Discovery**
+Agents can find new services and capabilities on the fly without requiring pre-programmed knowledge.
 
-### Actions
-An action represents a single API operation. For OpenAPI specifications:
+### 🎯 **Single Operation Requests**
+Each request corresponds to exactly one API operation, ensuring atomicity and clarity.
+
+### 🔒 **Secure State Management**
+A three-tier state management system for secure handling of data:
+- **Service Variables** for sensitive, domain-specific storage.
+- **Shared Variables** for cross-capability sharing.
+- **Temporary Variables** for transient, execution-specific data.
+
+### 🧩 **Flow Control**
+Built-in support for conditional execution, branching, and agent decision-making.
+
+---
+
+## **Core Concepts**
+
+### **Requests**
+Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
 - One endpoint
 - One HTTP method
-- Clear input/output contract
+- A well-defined input/output contract
 
+Example:
 ```yaml
-getWeatherAction:
-  format: OpenAPI
+getWeatherRequest:
   specification:
+    openapi: 3.0.1
+    info:
+      title: Weather API
+      version: 1.0.0
+    servers:
+      - url: https://api.weather.com
     paths:
       /weather/{city}:    # Single endpoint
         get: {}           # Single operation
 ```
 
-### Tasks
-Tasks orchestrate actions and agent decisions. Types include:
-- `action`: Execute a single API operation
-- `agent_decision`: Let the agent make a choice
-- `condition`: Branch based on a condition
+### **Tasks**
+Tasks orchestrate requests and logic, supporting multiple types:
+- **`request`**: Execute a single API operation.
+- **`agent_decision`**: Allow the agent to make a decision based on available data.
+- **`condition`**: Branch execution based on a condition.
 
-### State Management
-Every state value must specify its type and storage level:
+### **State Management**
+State values are strictly typed and explicitly define their storage level:
 ```yaml
 temperature:
-  type: number          # string, number, boolean, date, object, array
-  value: $.temp         # value or reference
-  storage: temporary    # service, shared, or temporary
+  type: number          # Data types: string, number, boolean, date, object, array
+  value: $.temp         # Direct value or reference
+  storage: temporary    # Levels: service, shared, temporary
 ```
+- **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
+- **Shared Variables**: Available across cababilities
+- **Temporary Variables**: Cleared after execution for transient data.
 
-Storage levels:
-1. **Service Variables**
-   - Domain-specific encryption (e.g. Client_Secret)
-
-2. **Shared Variables**
-   - Stored and shared across cababilities
-
-3. **Temporary Variables**
-   - Clear after execution
-
-### Capability Structure
-
-Each capability requires essential metadata:
+### **Capability Structure**
+Each capability must define essential metadata for discovery and execution:
 ```yaml
-a2s: 1.0.0              # Protocol version (required)
-id: "WeatherCapability" # Unique identifier
-description: "..."      # Human-readable explanation
-charset: "utf-8"        # Default utf-8
-domains:                # At least one domain
+a2s: 1.0.0               # Protocol version (required)
+id: "WeatherCapability"  # Unique identifier
+description: "Fetches weather data and evaluates its impact on user activities."
+domains:                 # Supported domains
   - "api.weather.com"
-version: 1.0.0          # Capability version
-checksum: "<sha256>"    # SHA-256 hash (excluding this field)
+version: 1.0.0           # Capability version
+checksum: "<sha256>"     # SHA-256 hash (excluding this field)
 authors:
   - name: "Author Name"
 execution:
-  type: "sequence"      # sequence|parallel|condition
+  type: "sequence"       # sequence|parallel|condition
   tasks:
     # Task definitions
 ```
 
-## Example Capability
+---
+
+## **Example Capability**
 
 ```yaml
 a2s: 1.0.0
@@ -89,40 +103,41 @@ authors:
   - name: "Jane Smith"
 checksum: "<calculated_checksum>"
 
-actions:
-getWeatherAction:
-  format: OpenAPI
-  specification:
-    openapi: 3.0.1
-    info:
-      title: Weather API
-      version: 1.0.0
-    servers:
-      - url: https://api.weather.com
-    paths:
-      /weather/{city}:
-        get:
-          parameters:
-            - name: city
-              in: path
-              required: true
-          responses:
-            '200':
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      temperature:
-                        type: number
+requests:
+  getWeatherRequest:
+    format: OpenAPI
+    specification:
+      openapi: 3.0.1
+      info:
+        title: Weather API
+        version: 1.0.0
+      servers:
+        - url: https://api.weather.com
+      paths:
+        /weather/{city}:
+          get:
+            parameters:
+              - name: city
+                in: path
+                required: true
+            responses:
+              '200':
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        temperature:
+                          type: number
 
 execution:
   type: sequence
   tasks:
     - id: getWeather
-      type: action
-      format: "OpenAPI"
-      action_ref: #/actions/getWeatherAction
+      type: request
+      definition:
+        format: "OpenAPI"
+        request: #/requests/getWeatherRequest
       input_mapping:
         city:
           type: string
@@ -139,7 +154,11 @@ execution:
       description: Evaluate if weather is noteworthy
 ```
 
-## Interactive Example
+---
+
+## **Interactive Example**
+
+Here’s how A2S could work in a chat-based interaction:
 
 ```
 ┌──────────────────── A2S Chat Session ────────────────────┐
@@ -162,13 +181,19 @@ execution:
 └───────────────────────────────────────────────────────────┘
 ```
 
-## SDK Usage
+---
 
+## **SDK Usage**
+
+### JavaScript / TypeScript
 ```typescript
-// Initialize
+import { A2SRegistry, A2SAgent } from '@a2s/core';
+
 const registry = new A2SRegistry("https://registry.example.com");
 const agent = new A2SAgent();
+
 agent.useRegistries([registry]);
+
 
 agent.handleRequest(query);
 
@@ -204,46 +229,22 @@ Each task can specify its next task using the next field:
 ```
 - id: checkAuth
   type: condition
-  condition: ${!auth_token || auth_token_expired}
+  definition:
+    condition: ${!auth_token || auth_token_expired}
   next:
     true: getToken
     false: getWeather
 
 - id: getToken
-  type: action
-  action_ref: #/actions/getTokenAction
+  type: request
+  definition:
+    request: #/requests/getTokenRequest
   next: getWeather
 ```
 
 
-## Best Practices
-
-1. **Action Design**
-   - One operation per action
-   - Clear input/output contracts
-   - Explicit error responses
-
-2. **State Management**
-   - Default to temporary storage
-   - Explicit type definitions
-   - Clear security boundaries
-
-3. **Agent Decisions**
-   - Clear decision criteria
-   - Document context needed
-   - Handle all outcomes
-
-   
-
-## Future Plans
-
-- GraphQL, AsyncAPI, and gRPC support
-- Enhanced agent decision framework
-- Capability composition tools
-- Multi-language SDKs
-
+### Python
 ```python
-# Python implementation
 from a2s import A2SRegistry, A2SAgent
 
 registry = A2SRegistry("https://registry.example.com")
@@ -258,18 +259,45 @@ const registry = new A2SRegistry("https://registry.example.com");
 const agent = new A2SAgent();
 ```
 
-```go
-// Go implementation
-import "github.com/a2s/core"
+---
 
-registry := a2s.NewRegistry("https://registry.example.com")
-agent := a2s.NewAgent()
-```
+## **Best Practices**
 
-## Capability Chaining
+1. **Request Design**:
+   - Limit each request to one operation.
+   - Ensure input/output contracts are explicit.
+   - Include clear error responses.
 
-Capabilities can depend on other capabilities, allowing for complex workflows. [read more](Chaining.md).
+2. **State Management**:
+   - Default to temporary storage unless persistence is necessary.
+   - Explicitly type all state values.
+   - Avoid excessive shared variables to maintain security boundaries.
 
-## License
+3. **Agent Decisions**:
+   - Clearly define decision criteria.
+   - Handle all possible outcomes explicitly.
+   - Include documentation for context-sensitive decisions.
 
+---
+
+## **Future Plans**
+
+- **GraphQL, AsyncAPI, and gRPC Support**: Expand supported protocols for greater flexibility.
+- **Advanced Decision Framework**: Enhance agent decision-making capabilities.
+- **Capability Composition Tools**: Enable intuitive chaining of complex workflows.
+- **Multi-Language SDKs**: Broaden language support for easier integration.
+
+---
+
+## **FAQs**
+
+### **How does A2S ensure secure interactions?**
+A2S uses a three-tier state management system, with encryption for sensitive data in `Service Variables`. Agents and services communicate via secure protocols like OAuth2 or mTLS.
+
+### **Can A2S handle non-OpenAPI services?**
+Yes! While A2S primarily supports OpenAPI, it plans to include support for GraphQL, gRPC, and custom specifications.
+
+---
+
+## **License**
 This project is licensed under the [MIT License](LICENSE).
