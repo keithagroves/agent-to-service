@@ -7,6 +7,33 @@ The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discove
 
 ---
 
+
+## **Example**
+
+Here’s how A2S could work in a chat-based interaction:
+
+```
+┌──────────────────── A2S Chat Session ────────────────────┐
+
+👤 [USER] > Check the weather for my picnic in Central Park and tweet it.
+
+🤖 [AGENT] > Found capability: PostWeatherTweet
+            └─ Compatible with: Weather API, Twitter API
+
+   [AGENT] > Task breakdown:
+            ├─ 1. Get weather forecast
+            └─ 2. Post weather update
+
+   [AGENT] > Would you like a specific message with the weather?
+
+👤 [USER] > Yes, mention it's for a weekend picnic.
+
+🤖 [AGENT] > Tweet posted: "Weekend picnic weather update for Central Park: 
+            Sunny with light clouds, high of 75°F. Perfect picnic weather! 🧺☀️"
+└───────────────────────────────────────────────────────────┘
+```
+
+
 ## **Key Features**
 
 #### 🤖 **Agent-First Design**
@@ -155,31 +182,6 @@ execution:
 ```
 
 ---
-
-## **Interactive Example**
-
-Here’s how A2S could work in a chat-based interaction:
-
-```
-┌──────────────────── A2S Chat Session ────────────────────┐
-
-👤 [USER] > Check the weather for my picnic in Central Park and tweet it.
-
-🤖 [AGENT] > Found capability: PostWeatherTweet
-            └─ Compatible with: Weather API, Twitter API
-
-   [AGENT] > Task breakdown:
-            ├─ 1. Get weather forecast
-            └─ 2. Post weather update
-
-   [AGENT] > Would you like a specific message with the weather?
-
-👤 [USER] > Yes, mention it's for a weekend picnic.
-
-🤖 [AGENT] > Tweet posted: "Weekend picnic weather update for Central Park: 
-            Sunny with light clouds, high of 75°F. Perfect picnic weather! 🧺☀️"
-└───────────────────────────────────────────────────────────┘
-```
 
 ---
 
