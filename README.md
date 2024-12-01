@@ -135,6 +135,8 @@ The A2S Registries are what agents can query to learn of new capabilities. The d
 
 Agents can break down user queries into multipl intents and utilize the registry to determine the capabilites that will provide the desired outcome.
 
+![A2S Flow](diagram.png)
+
 ---
 
 
