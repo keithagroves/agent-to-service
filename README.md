@@ -17,7 +17,7 @@ Here’s how A2S could work in a chat-based interaction:
 👤 [USER] > Check the weather for my picnic in Central Park and tweet it.
 
 🤖 [AGENT] > Found capability: PostWeatherTweet
-            └─ Compatible with: Weather API, Twitter API
+            └─ Services: WeatherAPI.com, Twitter API
 
    [AGENT] > Task breakdown:
             ├─ 1. Get weather forecast
@@ -95,6 +95,7 @@ Tasks orchestrate requests and logic, supporting multiple types:
 - **`request`**: Execute a single API operation.
 - **`agent_decision`**: Allow the agent to make a decision based on available data.
 - **`condition`**: Branch execution based on a condition.
+- **`sampling`**: Request LLM completions
 
 Additional task types for local operations, resource handling, and advanced workflows are under development.
 #### **Requests**
