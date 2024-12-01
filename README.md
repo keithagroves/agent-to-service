@@ -87,9 +87,6 @@ execution:
 ```
 
 
-
-
-
 ### **Tasks**
 Tasks orchestrate requests and logic, supporting multiple types:
 - **`request`**: Execute a single API operation.
@@ -143,8 +140,8 @@ Agents can break down user queries into multipl intents and utilize the registry
 
 
 ## **SDK Usage**
-
 ### JavaScript / TypeScript
+
 ```typescript
 import { A2SRegistry, A2SAgent } from '@a2s/core';
 
@@ -157,9 +154,49 @@ agent.useRegistries([registry]);
 agent.handleRequest(query);
 
 
-// Execute capability in handle Request
-await agent.executeCapabilities(capabilities);
+// Agent
+
+async handleRequest(query: string) {
+    // 1. Extract intent and parameters
+    const { intents, parameters } = this.parseQuery(query);
+
+    const args = {
+      strategy: "highest_score"
+    }; // optional args
+
+    // 2. Find relevant capabilities
+    const capabilities = await registry.searchCapabilities(intents, args); 
+
+    if (capabilities.length === 0) {
+      console.log('No capabilities found matching your query.');
+      return;
+    }
+
+    // For each capability
+    for (const capability of capabilities) {
+      // 3. Verify capability integrity
+      if (!this.verifyChecksum(capability)) {
+        console.error('Capability checksum verification failed.');
+        continue;
+      }
+
+      // 4. Resolve state. (E.g. provide any needed parameters for a request.)
+      const stateStore = new StateStore();
+      await this.resolveState(capability, stateStore);
+
+      // 5. Execute capability
+      const executor = new CapabilityExecutor(stateStore);
+      const response = await executor.executeCapabilityTasks(capability);
+
+      // 6. Process response
+      const finalResponse = this.processResponse(response);
+
+      // 7. Provide feedback
+      console.log('Final Response to User:', finalResponse);
+    }
+}
 ```
+
 
 ## Creating a new capability
 
@@ -173,6 +210,9 @@ domains:
   - "<domain1>"
   - "<domain2>"
 version: "<capability_version>"
+status: "stable"          # stable, beta, deprecated
+support:
+  url: "https://github.com/org/a2s-capabilities/issues/new?template=capability_issue.md&title=[my-capability-name]"
 checksum: "<checksum_value>"
 authors:
   - name: "<author_name>"
@@ -248,6 +288,7 @@ execution:
 
 ## Advanced Features
 
+### Contitional tasks
 Each task can specify its next task using the next field:
 
 ```
@@ -303,6 +344,7 @@ const agent = new A2SAgent();
    - Include documentation for context-sensitive decisions.
 
 ---
+
 
 ## **Future Plans**
 
