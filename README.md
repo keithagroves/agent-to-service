@@ -1,6 +1,6 @@
 # Agent-to-Service Protocol (A2S)
 
-![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) [![Discord](https://img.shields.io/discord/YOUR_DISCORD_ID?color=7289da&label=Discord&logo=discord&logoColor=white)](https://discord.gg/VwUqhMWb)
 
 The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find services, understand their capabilities, and securely interact with them, making it a powerful framework for integrating AI with APIs.
 
@@ -138,8 +138,6 @@ Agents can break down user queries into multipl intents and utilize the registry
 ![A2S Flow](diagram.png)
 
 ---
-
-
 
 
 ## **SDK Usage**
