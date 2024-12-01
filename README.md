@@ -9,16 +9,16 @@ The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discove
 
 ## **Key Features**
 
-### 🤖 **Agent-First Design**
+#### 🤖 **Agent-First Design**
 Built specifically for AI agents to understand, utilize, and orchestrate API services seamlessly.
 
-### 🔍 **Dynamic Runtime Discovery**
+#### 🔍 **Dynamic Runtime Discovery**
 Agents can find new services and capabilities on the fly without requiring pre-programmed knowledge.
 
-### 🎯 **Single Operation Requests**
+#### 🎯 **Single Operation Requests**
 Each request corresponds to exactly one API operation, ensuring atomicity and clarity.
 
-### 🔒 **Secure State Management**
+#### 🔒 **Secure State Management**
 A three-tier state management system for secure handling of data:
 - **Service Variables** for sensitive, domain-specific storage.
 - **Shared Variables** for cross-capability sharing.
