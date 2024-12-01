@@ -1,7 +1,6 @@
 # Agent-to-Service Protocol (A2S)
 
-![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow)  
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
 The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find services, understand their capabilities, and securely interact with them, making it a powerful framework for integrating AI with APIs.
 
@@ -57,66 +56,17 @@ Built-in support for conditional execution, branching, and agent decision-making
 
 ## **Core Concepts**
 
-### **Requests**
-Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
-- One endpoint
-- One HTTP method
-- A well-defined input/output contract
+### Capabilities
 
-Example:
-```yaml
-getWeatherRequest:
-  specification:
-    openapi: 3.0.1
-    info:
-      title: Weather API
-      version: 1.0.0
-    servers:
-      - url: https://api.weather.com
-    paths:
-      /weather/{city}:    # Single endpoint
-        get: {}           # Single operation
-```
+Capabilities are the fundamental building blocks of A2S, defining how agents interact with services. Each capability is specified in a YAML or JSON file that precisely describes:
+- What tasks can be performed
+- How to execute those tasks
+- What outcomes to expect
 
-### **Tasks**
-Tasks orchestrate requests and logic, supporting multiple types:
-- **`request`**: Execute a single API operation.
-- **`agent_decision`**: Allow the agent to make a decision based on available data.
-- **`condition`**: Branch execution based on a condition.
+Think of capabilities as recipes that tell AI agents exactly how to accomplish specific goals using available services. Just as a recipe lists ingredients and tasks, a capability lists data and tasks required.
 
-### **State Management**
-State values are strictly typed and explicitly define their storage level:
-```yaml
-temperature:
-  type: number          # Data types: string, number, boolean, date, object, array
-  value: $.temp         # Direct value or reference
-  storage: temporary    # Levels: service, shared, temporary
-```
-- **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
-- **Shared Variables**: Available across cababilities
-- **Temporary Variables**: Cleared after execution for transient data.
 
-### **Capability Structure**
-Each capability must define essential metadata for discovery and execution:
-```yaml
-a2s: 1.0.0               # Protocol version (required)
-id: "WeatherCapability"  # Unique identifier
-description: "Fetches weather data and evaluates its impact on user activities."
-domains:                 # Supported domains
-  - "api.weather.com"
-version: 1.0.0           # Capability version
-checksum: "<sha256>"     # SHA-256 hash (excluding this field)
-authors:
-  - name: "Author Name"
-execution:
-  type: "sequence"       # sequence|parallel|condition
-  tasks:
-    # Task definitions
-```
-
----
-
-## **Example Capability**
+**Example Capability**
 
 ```yaml
 a2s: 1.0.0
@@ -180,7 +130,70 @@ execution:
       description: Evaluate if weather is noteworthy
 ```
 
----
+### A2S Registry
+
+The A2S Registries are what agents can query to learn of new capabilities. The default registry is implemented using a graph database with that allows agents to use symantic searches for relevant capabilites. 
+
+Agents can break down user queries into multipl intents and utilize the registry to determine the capabilites that will provide the desired outcome.
+
+### **Tasks**
+Tasks orchestrate requests and logic, supporting multiple types:
+- **`request`**: Execute a single API operation.
+- **`agent_decision`**: Allow the agent to make a decision based on available data.
+- **`condition`**: Branch execution based on a condition.
+
+#### **Requests**
+Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
+- One endpoint
+- One HTTP method
+- A well-defined input/output contract
+
+Example:
+```yaml
+getWeatherRequest:
+  specification:
+    openapi: 3.0.1
+    info:
+      title: Weather API
+      version: 1.0.0
+    servers:
+      - url: https://api.weather.com
+    paths:
+      /weather/{city}:    # Single endpoint
+        get: {}           # Single operation
+```
+
+### **State Management**
+State values are strictly typed and explicitly define their storage level:
+```yaml
+temperature:
+  type: number          # Data types: string, number, boolean, date, object, array
+  value: $.temp         # Direct value or reference
+  storage: temporary    # Levels: service, shared, temporary
+```
+- **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
+- **Shared Variables**: Available across cababilities
+- **Temporary Variables**: Cleared after execution for transient data.
+
+### **Capability Structure**
+Each capability must define essential metadata for discovery and execution:
+```yaml
+a2s: 1.0.0               # Protocol version (required)
+id: "WeatherCapability"  # Unique identifier
+description: "Fetches weather data and evaluates its impact on user activities."
+domains:                 # Supported domains
+  - "api.weather.com"
+version: 1.0.0           # Capability version
+checksum: "<sha256>"     # SHA-256 hash (excluding this field)
+authors:
+  - name: "Author Name"
+execution:
+  type: "sequence"       # sequence|parallel|condition
+  tasks:
+    # Task definitions
+```
+
+
 
 ---
 
@@ -199,8 +212,8 @@ agent.useRegistries([registry]);
 agent.handleRequest(query);
 
 
-// Execute capability
-await agent.executeCapability(capability);
+// Execute capability in handle Request
+await agent.executeCapabilities(capabilities);
 ```
 
 ## Creating a new capability
