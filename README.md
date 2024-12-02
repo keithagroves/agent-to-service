@@ -5,6 +5,9 @@
 
 The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find services, understand their capabilities, and securely interact with them, making it a powerful framework for integrating AI with APIs.
 
+
+**Why would I need this?** You want to create an Ai Agent that isn't limited to its programming and can reach out to discover and execute new capabilities at runtime. 
+
 ---
 
 ## **Example**
@@ -39,19 +42,16 @@ Here’s how A2S could work in a chat-based interaction:
 Built specifically for AI agents to understand, utilize, and orchestrate API services seamlessly.
 
 🔍 **Dynamic Runtime Discovery**
-Agents can find new services and capabilities on the fly without requiring pre-programmed knowledge.
+AI Agents can find new services and capabilities on the fly without requiring pre-programmed knowledge.
 
 🎯 **Single Operation Requests**
 Each request corresponds to exactly one API operation, ensuring atomicity and clarity.
 
 🔒 **Secure State Management**
 A three-tier state management system for secure handling of data:
-- **Service Variables** for sensitive, domain-specific storage.
-- **Shared Variables** for cross-capability sharing.
-- **Temporary Variables** for transient, execution-specific data.
 
 🧩 **Flow Control**
-Built-in support for conditional execution, branching, and agent decision-making.
+Built-in support for conditional execution, branching, and ai agent decision-making.
 
 ---
 
@@ -59,7 +59,7 @@ Built-in support for conditional execution, branching, and agent decision-making
 
 ### Capabilities
 
-Capabilities are the fundamental building blocks of A2S, defining how agents interact with services. Each capability is specified in a YAML or JSON file that precisely describes:
+Capabilities are the fundamental building blocks of A2S, defining how AI agents interact with services. Each capability is specified in a YAML or JSON file that precisely describes:
 - What tasks can be performed
 - How to execute those tasks
 - What outcomes to expect
@@ -69,7 +69,7 @@ Think of capabilities as recipes that tell AI agents exactly how to accomplish s
 
 
 ### **Capability Structure**
-Each capability must define essential metadata for discovery and execution:
+Each capability defines essential metadata for discovery and execution:
 ```yaml
 a2s: 1.0.0               # Protocol version (required)
 id: "WeatherCapability"  # Unique identifier
@@ -95,11 +95,14 @@ Tasks orchestrate requests and logic, supporting multiple types:
 - **`sampling`**: Request LLM completions
 
 Additional task types for local operations, resource handling, and advanced workflows are under development.
+
 #### **Requests**
 Requests represent single API operations, designed for clarity and simplicity. Each request is defined by:
 - One endpoint
 - One HTTP method
 - A well-defined input/output contract
+
+In theory, requests could be defined using various protocols (AsyncAPI, OpenAPI, GraphQL, etc). Here is an example of OpenAPI implementation. Note that there is only one path to choose from to ensure there is no ambiguity.
 
 Example:
 ```yaml
@@ -127,6 +130,7 @@ temperature:
 - **Service Variables**: Domain-specific encrypted values (e.g., `Client_Secret`).
 - **Shared Variables**: Available across cababilities
 - **Temporary Variables**: Cleared after execution for transient data.
+
 
 ### A2S Registry
 
@@ -234,6 +238,8 @@ version: 1.0.0
 authors:
   - name: "Jane Smith"
 checksum: "<calculated_checksum>"
+scope: 
+source_url: https://github.com/org/repo/weather/analysis.yaml  # Optional direct link
 
 requests:
   getWeatherRequest:
@@ -367,3 +373,35 @@ Yes! While A2S primarily supports OpenAPI, it plans to include support for Graph
 
 ## **License**
 This project is licensed under the [MIT License](LICENSE).
+
+
+
+requests:
+  mainRequest:
+    format: "OpenAPI"
+    specification:
+      openapi: "3.0.1"
+      info:
+        title: "Example API"
+        version: "1.0.0"
+      servers:
+        - url: "https://api.example.com"
+      paths:
+        "/endpoint/{param}":
+          get:
+            parameters:
+              - name: "param"
+                in: "path"
+                required: true
+                schema:
+                  type: "string"
+            responses:
+              '200':
+                description: "Successful response"
+                content:
+                  application/json:
+                    schema:
+                      type: "object"
+                      properties:
+                        result:
+                          type: "string"
