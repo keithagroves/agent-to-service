@@ -17,8 +17,8 @@ Here's how A2S works in a chat-based interaction:
 
 👤 [USER] > Check the weather for my picnic in Central Park and tweet it.
 
-🤖 [AGENT] > Found capability: PostWeatherTweet
-            └─ Services: WeatherAPI.com, Twitter API
+🤖 [AGENT] > Found capability: WeatherUpdateCapability
+            └─ Services: api.weather.com, api.twitter.com
 
    [AGENT] > Task breakdown:
             ├─ 1. Get weather forecast
@@ -51,8 +51,8 @@ Each capability is specified in YAML or JSON format with mandatory metadata:
 
 ```yaml
 a2s: 1.0.0               # Protocol version (required)
-id: "WeatherCapability"  # Unique identifier
-description: "Fetches weather data and evaluates its impact on user activities"
+id: "CapabilityID"       # Unique identifier
+description: "Capability description"
 version: 1.0.0           # Capability version
 authors:
   - name: "Author Name"
@@ -102,14 +102,6 @@ dependencies:
     version: "^1.0.0"
     checksum: "sha256:abc123..."
     registry: registries.custom
-
-tasks:
-  - id: getWeather
-    type: capability
-    definition:
-      - id: getCurrentWeather
-        type: capability
-        uses: "weather/getWeather"
 ```
 
 ### Tasks
@@ -121,6 +113,16 @@ Tasks come in several types:
 - `condition`: Implement conditional branching.
 - `sampling`: Request LLM completions.
 - `capability`: Execute an imported capability.
+
+```yaml
+tasks:
+  - id: getWeather
+    type: capability
+    definition:
+      - id: getCurrentWeather
+        type: capability
+        uses: "weather/getWeather"
+```
 
 ### Requests
 
@@ -144,7 +146,14 @@ getWeatherRequest:
       - url: https://api.weather.com
     paths:
       /weather/{city}:    # Single endpoint
-        get: {}           # Single operation
+        get:              # Single operation
+          summary: "Get weather for a city"
+          parameters:
+            - in: path
+              name: city
+              required: true
+              schema:
+                type: string
 ```
 
 ### State Management
@@ -165,27 +174,25 @@ Example state management definition:
 ```yaml
 state:
   input:
-    - services["api.name"].oauth2.client_id
-  paramName:
-    type: number
-    lifecycle: capability
-    required: true
+    city:
+      type: string
+      lifecycle: capability
+      required: true
 
   output:
     persistent:
-      - services["api.name"].oauth2.access_token
+      - services["api.example.com"].oauth2.access_token
     transient:
-      resultData:
+      weatherData:
         type: object
-        schema:
-          field: string
+        properties:
+          temperature:
+            type: number
 
   runtime:
     transient:
       tempData:
         type: object
-        schema:
-          field: number
 ```
 
 ### Services
@@ -195,7 +202,7 @@ Services define the external APIs that the capability interacts with:
 ```yaml
 services:
   "api.example.com":
-    type: "service-type"
+    type: "weather-api"
     oauth2:                    # Authentication method
       read:
         - client_id
@@ -203,26 +210,26 @@ services:
       write:
         - access_token
         - refresh_token
-    tasks: ["taskName"]        # Associated tasks
+    tasks: ["getWeatherTask"]        # Associated tasks
 ```
 
 ### Example Task Definition
 
 ```yaml
 tasks:
-  - id: taskName
+  - id: getWeatherTask
     type: request
     requires_service: "api.example.com"
     definition:
-      request: #/requests/requestName
+      request: "#/requests/getWeatherRequest"
     input_mapping:
-      field:
-        type: string
-        value: ${reference}
+      city: "#/state/input/city"
+    output_mapping:
+      temperature: "#/state/output/weatherData/temperature"
     error_handling:
       on_failure:
         action: "continue"
-        message: "Error message"
+        message: "Error fetching weather data"
 ```
 
 ### Flow Control
@@ -233,14 +240,15 @@ Define execution flow with sequential, parallel, or conditional steps:
 flow:
   type: sequence
   steps:
-    - task: firstTask
+    - task: getWeatherTask
+    - task: decideToPost
     - type: condition
-      if: "${condition}"
+      if: "#/tasks/decideToPost/output/shouldPost"
       then:
-        type: parallel
-        tasks: ["task1", "task2"]
+        tasks:
+          - task: postToSocialMedia
       else:
-        task: "alternativeTask"
+        task: logDecision
 ```
 
 ### A2S Registry
@@ -293,44 +301,47 @@ const capabilities = registry.findCapability("User query");
 
 async function executeCapability(capability) {
   if (!agent.verifyChecksum(capability)) return;
-  
+
   const stateStore = new StateStore();
   await agent.resolveState(capability, stateStore);
-  
+
   const executor = new CapabilityExecutor(stateStore);
   return await executor.execute(capability);
 }
 ```
 
-### Example
+## Example
+
+Below is an example of an aggregate capability that fetches weather information and posts an update to social media if the weather is noteworthy.
 
 ```yaml
 a2s: 1.0.0
 id: WeatherUpdateCapability
 description: Gets weather and posts noteworthy updates
 version: 1.0.0
+type: aggregate
+
 authors:
-  - name: "Jane Smith"
+  - name: Jane Smith
 checksum: "<calculated_checksum>"
-type: "aggregate"
-source_url: https://github.com/org/repo/weather/analysis.yaml
+source_url: https://github.com/org/repo/weather/WeatherUpdateCapability.yaml
 
 audit:
-  status: "audited"
-  provider: "SecurityFirm Inc."
-  id: "AUDIT-2024-001"
-  url: "https://security.example.com/audits/AUDIT-2024-001"
+  status: audited
+  provider: SecurityFirm Inc.
+  id: AUDIT-2024-001
+  url: https://security.example.com/audits/AUDIT-2024-001
 
 permissions:
-  level: "elevated"
-  description: "Requires ability to post on social media and send alerts"
+  level: elevated
+  description: Requires ability to post on social media and send alerts
   capabilities:
-    - "post_social_media"
-    - "send_alerts"
+    - post_social_media
+    - send_alerts
 
 services:
-  "api.weather.com":
-    type: "weather-api"
+  api.weather.com:
+    type: weather-api
     oauth2:
       read:
         - client_id
@@ -338,56 +349,83 @@ services:
       write:
         - access_token
         - refresh_token
-    tasks: ["getWeather"]
-    
-  "api.twitter.com":
-    type: "social-media"
+    tasks: [getWeather]
+
+  api.twitter.com:
+    type: social-media
     oauth2:
       read:
         - client_id
         - client_secret
       write:
         - access_token
-    tasks: ["postSocialMedia"]
-    
-  "twilio.com":
-    type: "messaging"
+    tasks: [postSocialMedia]
+
+  twilio.com:
+    type: messaging
     apiKey:
       read:
         - key
-    tasks: ["sendAlert"]
+    tasks: [sendAlert]
 
 state:
   input:
-    - services["api.weather.com"].oauth2.client_id
-    - services["api.weather.com"].oauth2.client_secret
-    - services["api.twitter.com"].oauth2.client_id
-    - services["api.twitter.com"].oauth2.client_secret
-    - services["twilio.com"].apiKey.key
+    - "#/services/api.weather.com/oauth2/client_id"
+    - "#/services/api.weather.com/oauth2/client_secret"
+    - "#/services/api.twitter.com/oauth2/client_id"
+    - "#/services/api.twitter.com/oauth2/client_secret"
+    - "#/services/twilio.com/apiKey/key"
     city:
       type: string
-      lifecycle: capability
+      description: City name to fetch weather for
       required: true
+      example: San Francisco
 
   output:
     persistent:
-      - services["api.weather.com"].oauth2.access_token
-      - services["api.weather.com"].oauth2.refresh_token
-      - services["api.twitter.com"].oauth2.access_token
+      - "#/services/api.weather.com/oauth2/access_token"
+      - "#/services/api.weather.com/oauth2/refresh_token"
+      - "#/services/api.twitter.com/oauth2/access_token"
     transient:
       weatherDetails:
         type: object
-        schema:
-          location: string
-          weather: string
+        description: Current weather information
+        properties:
+          location:
+            type: string
+            description: City name
+            example: San Francisco
+          weather:
+            type: string
+            description: Weather description
+            example: Sunny
+          temperature:
+            type: number
+            description: Temperature in Celsius
+            example: 22.5
+        required: [location, weather, temperature]
 
   runtime:
     transient:
+      shouldPost:
+        type: boolean
+        description: Whether the weather warrants a post
+        example: true 
       coordinates:
         type: object
-        schema:
-          long: number
-          lat: number
+        description: Geographic coordinates
+        properties:
+          long:
+            type: number
+            description: Longitude coordinate
+            format: float
+            example: -122.4194
+          lat:
+            type: number
+            description: Latitude coordinate
+            format: float
+            example: 37.7749
+        required: [long, lat]
 
 requests:
   getWeatherRequest:
@@ -402,12 +440,18 @@ requests:
       paths:
         /weather/{city}:
           get:
+            summary: Get current weather
+            description: Retrieves current weather for a specified city
             parameters:
               - name: city
                 in: path
                 required: true
+                schema:
+                  type: string
+                  example: San Francisco
             responses:
               '200':
+                description: Successful weather data retrieval
                 content:
                   application/json:
                     schema:
@@ -415,43 +459,46 @@ requests:
                       properties:
                         temperature:
                           type: number
+                          format: float
+                          description: Current temperature in Celsius
+                          example: 22.5
 
 tasks:
   - id: getWeather
     type: request
-    requires_service: "api.weather.com"
+    requires_service: "#/services/api.weather.com"
     definition:
-      request: #/requests/getWeatherRequest
+      request: "#/requests/getWeatherRequest"
     input_mapping:
-      city:
-        type: string
-        value: ${city}
+      city: "#/state/input/city"
     output_mapping:
-      temperature:
-        type: number
-        value: $.weather.temperature
+      temperature: "#/state/output/weatherDetails/temperature"
+      location: "#/state/output/weatherDetails/location"
+      weather: "#/state/output/weatherDetails/weather"
     error_handling:
       on_failure:
-        action: "continue"
+        action: continue
         message: "Weather data fetch failed"
 
   - id: decideToPost
     type: agent_decision
     description: Evaluate if weather is noteworthy
     output_mapping:
-      shouldPost:
-        type: boolean
-        value: ${decision}
+      shouldPost: "#state/runtime/transient/shouldPost
 
   - id: postSocialMedia
     type: request
-    requires_service: "api.twitter.com"
+    requires_service: "#/services/api.twitter.com"
     description: Post to social media
+    input_mapping:
+      message: "Today's weather in ${#/state/output/weatherDetails/location}: ${#/state/output/weatherDetails.weather}, ${#/state/output/weatherDetails.temperature}°C"
 
   - id: sendAlert
     type: request
-    requires_service: "twilio.com"
+    requires_service: "#/services/twilio.com"
     description: Send weather alert
+    input_mapping:
+      message: "Alert: Noteworthy weather in ${#/state/output/weatherDetails/location}"
 
   - id: logDecision
     type: request
@@ -463,51 +510,53 @@ flow:
     - task: getWeather
     - task: decideToPost
     - type: condition
-      if: "${decideToPost.shouldPost}"
+      if: "#/tasks/decideToPost/output/shouldPost"
       then:
         type: parallel
-        tasks: ["postSocialMedia", "sendAlert"]
+        tasks: [postSocialMedia, sendAlert]
       else:
-        task: "logDecision"
+        task: logDecision
 
 examples:
-  - description: "Post weather alert for high temperature"
+  - description: Post weather alert for high temperature
     input:
       services:
-        "api.weather.com":
+        api.weather.com:
           oauth2:
-            client_id: "example_id"
-            client_secret: "example_secret"
-        "api.twitter.com":
+            client_id: example_id
+            client_secret: example_secret
+        api.twitter.com:
           oauth2:
-            client_id: "twitter_id"
-            client_secret: "twitter_secret"
-        "twilio.com":
+            client_id: twitter_id
+            client_secret: twitter_secret
+        twilio.com:
           apiKey:
-            key: "twilio_key"
-      city: "San Francisco"
+            key: twilio_key
+      city: San Francisco
     expected_output:
       weatherDetails:
-        location: "San Francisco"
-        weather: "32°C, Sunny"
+        location: San Francisco
+        weather: "Sunny"
+        temperature: 32
       result: "Posted: High temperature alert for San Francisco. Current temperature: 32°C"
 
-  - description: "Normal weather update without alert"
+  - description: Normal weather update without alert
     input:
       services:
-        "api.weather.com":
+        api.weather.com:
           oauth2:
-            client_id: "example_id"
-            client_secret: "example_secret"
-        "api.twitter.com":
+            client_id: example_id
+            client_secret: example_secret
+        api.twitter.com:
           oauth2:
-            client_id: "twitter_id"
-            client_secret: "twitter_secret"
-      city: "Seattle"
+            client_id: twitter_id
+            client_secret: twitter_secret
+      city: Seattle
     expected_output:
       weatherDetails:
-        location: "Seattle"
-        weather: "18°C, Cloudy"
+        location: Seattle
+        weather: "Cloudy"
+        temperature: 18
       result: "Weather conditions normal, no alert needed"
 ```
 
