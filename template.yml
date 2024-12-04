@@ -1,0 +1,150 @@
+a2s: 1.0.0                # Protocol version (required)
+id: "<CapabilityID>"       # Unique identifier for your capability
+description: "<Description of your capability>"
+version: 1.0.0           # Capability version
+type: "<atomic|aggregate>" # Capability type: 'atomic' or 'aggregate'
+
+authors:
+  - name: "<Author Name>"
+    email: "<Author Email>"         # Optional
+    organization: "<Organization>"  # Optional
+
+checksum: "<calculated_checksum>"   # SHA-256 hash of the capability file
+source_url: "<URL to capability source code or repository>"  # Optional
+
+audit:
+  status: "<audited|unaudited|in-progress>"
+  provider: "<Audit Provider Name>"
+  id: "<Audit ID>"
+  url: "<URL to audit report>"
+
+permissions:
+  level: "<basic|elevated|admin>"
+  description: "<Description of required permissions>"
+  capabilities:
+    - "<capability_name>"           # List of capabilities required
+
+registries:
+  default: "https://registry.a2s.dev"
+  custom: "<Custom registry URL>"
+
+dependencies:
+  # Example dependency
+  # dependency_name:
+  #   namespace: "<namespace>"
+  #   id: "<Dependency CapabilityID>"
+  #   version: "<Version Constraint>"
+  #   checksum: "<Dependency Checksum>"
+  #   registry: "<Registry URL>"
+
+services:
+  "<service_name>":
+    type: "<service_type>"          # E.g., 'weather-api', 'social-media'
+    authentication:
+      method: "<auth_method>"       # E.g., 'oauth2', 'api_key'
+      parameters:
+        - "<parameter_name>"
+    tasks:
+      - "<task_id>"                 # Tasks associated with this service
+
+# Capability-level parameters
+inputs:
+  "<input_parameter>":
+    type: "<data_type>"             # E.g., 'string', 'number', 'object'
+    description: "<Parameter description>"
+    example: "<Example value>"
+
+outputs:
+  "<output_parameter>":
+    type: "<data_type>"
+    description: "<Output description>"
+    lifecycle: "<persistent|session|capability|execution>"
+
+tasks:
+  - id: "<task_id>"
+    type: "<request|agent_decision|condition|sampling|capability>"
+    requires_service: "<service_name>"  # Required for 'request' tasks
+    condition: "<condition_expression>" # Optional condition for execution
+    inputs:
+      "<input_name>":
+        type: "<data_type>"
+        description: "<Input description>"
+        $ref: "<Reference to capability-level input or task output>"  # Optional
+        value: "<Literal value with interpolation>"                   # Optional
+    outputs:
+      "<output_name>":
+        type: "<data_type>"
+        description: "<Output description>"
+        lifecycle: "<persistent|session|capability|execution>"
+    definition:
+      request: "<Reference to request specification>"  # For 'request' tasks
+      logic: |                                        # For 'agent_decision' tasks
+        # Decision-making logic
+    error_handling:
+      on_failure:
+        action: "<continue|abort>"
+        message: "<Error message>"
+
+flow:
+  type: "<sequence|parallel|condition>"
+  steps:
+    - task: "<task_id>"
+    - type: "condition"
+      if: "<condition_expression>"
+      then:
+        tasks:
+          - task: "<task_id>"
+      else:
+        tasks:
+          - task: "<task_id>"
+
+requests:
+  "<request_name>":
+    format: "OpenAPI"
+    specification:
+      openapi: "3.0.1"
+      info:
+        title: "<API Title>"
+        version: "<API Version>"
+      servers:
+        - url: "<API Base URL>"
+      paths:
+        "<endpoint_path>":
+          "<http_method>":           # E.g., 'get', 'post'
+            summary: "<Operation summary>"
+            parameters:
+              - name: "<parameter_name>"
+                in: "<query|header|path|cookie>"
+                required: <true|false>
+                schema:
+                  type: "<data_type>"
+            requestBody:             # For 'post', 'put' methods
+              required: <true|false>
+              content:
+                application/json:
+                  schema:
+                    type: "<data_type>"
+                    properties:
+                      "<property_name>":
+                        type: "<data_type>"
+            responses:
+              '200':
+                description: "<Success description>"
+                content:
+                  application/json:
+                    schema:
+                      type: "<data_type>"
+                      properties:
+                        "<property_name>":
+                          type: "<data_type>"
+
+examples:
+  - description: "<Example description>"
+    inputs:
+      "<input_name>": "<value>"
+    expected_outputs:
+      "<output_name>": "<expected_value>"
+    tasks:
+      "<task_id>":
+        outputs:
+          "<output_name>": "<value>"
