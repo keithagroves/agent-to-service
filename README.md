@@ -2,11 +2,11 @@
 
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) [![Discord](https://img.shields.io/badge/Discord-A2S_PROTOCOL-blue?logo=discord&logoColor=white)](https://discord.gg/mMfxvMtHyS)
 
-The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find various capabilities, and securely interact with them, making it a powerful framework for integrating AI with APIs.
+The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find various capabilities and securely interact with them, making it a powerful framework for integrating AI with APIs.
 
 ## Overview
 
-**Why A2S?** Create AI Agents that can dynamically discover and execute new capabilities at runtime, extending beyond their initial programming.
+**Why A2S?** Create AI agents that can dynamically discover and execute new capabilities at runtime, extending beyond their initial programming.
 
 ## Example
 
@@ -35,51 +35,103 @@ Here's how A2S works in a chat-based interaction:
 
 ## Core Features
 
-- **Agent-First Design**: Purpose-built for AI agents to understand and orchestrate API services
-- **Dynamic Discovery**: Runtime service and capability discovery without pre-programming
-- **Atomic Operations**: One request per API operation for clarity and reliability
-- **Secure State Management**: Three-tier system for secure data handling
-- **Flow Control**: Support for conditional execution and agent decision-making
+- **Agent-First Design**: Purpose-built for AI agents to understand and orchestrate API services.
+- **Dynamic Discovery**: Runtime service and capability discovery without pre-programming.
+- **Atomic Operations**: One request per API operation for clarity and reliability.
+- **Secure State Management**: Data handling with storage types and lifecycles.
+- **Flow Control**: Support for conditional execution and agent decision-making.
+- **Security & Auditing**: Built-in audit trail and permission management.
+- **Capability Composition**: Support for atomic and aggregate capabilities.
 
 ## Core Concepts
 
 ### Capabilities
 
-Capabilities are the foundational units of A2S that define agent-service interactions. Each capability is specified in YAML or JSON format with:
+Each capability is specified in YAML or JSON format with mandatory metadata:
 
 ```yaml
 a2s: 1.0.0               # Protocol version (required)
 id: "WeatherCapability"  # Unique identifier
-description: "Fetches weather data and evaluates its impact on user activities."
-domains:                 # Supported domains
-  - "api.weather.com"
+description: "Fetches weather data and evaluates its impact on user activities"
 version: 1.0.0           # Capability version
-status: "stable"         # stable, beta, deprecated
-checksum: "<sha256>"     # SHA-256 hash (excluding this field)
 authors:
   - name: "Author Name"
-execution:
-  type: "sequence"       # sequence|parallel|condition
-  tasks:
-    # Task definitions
+type: "aggregate"        # aggregate | atomic
+checksum: "<sha256>"     # SHA-256 hash
+
+audit:
+  status: "audited"      # audited | unaudited | in-progress
+  provider: "SecurityFirm Inc."
+  id: "AUDIT-2024-001"
+  url: "https://security.example.com/audits/AUDIT-2024-001"
+
+permissions:
+  level: "elevated"      # basic | elevated | admin
+  description: "Required permissions description"
+  capabilities:
+    - "capability_name"
+```
+
+### Capability Types and Composition
+
+A2S supports two types of capabilities:
+
+1. **Atomic Capabilities**
+   - Self-contained with no external dependencies.
+   - Cannot import other capabilities.
+   - Building blocks for larger functionalities.
+
+2. **Aggregate Capabilities**
+   - Can import and compose atomic capabilities.
+   - Cannot import other aggregate capabilities (prevents circular dependencies).
+   - Used for complex workflows and multi-step processes.
+
+### Dependencies and Registries
+
+Capabilities can define their dependencies and registry sources:
+
+```yaml
+registries:
+  default: "https://registry.a2s.dev"
+  custom: "https://custom-registry.company.com"
+
+dependencies:
+  weather:
+    namespace: "core/weather"
+    id: "WeatherCapability"
+    version: "^1.0.0"
+    checksum: "sha256:abc123..."
+    registry: registries.custom
+
+tasks:
+  - id: getWeather
+    type: capability
+    definition:
+      - id: getCurrentWeather
+        type: capability
+        uses: "weather/getWeather"
 ```
 
 ### Tasks
 
 Tasks come in several types:
-- `request`: Execute an API operation
-- `agent_decision`: Enable agent decision-making
-- `condition`: Implement conditional branching
-- `sampling`: Request LLM completions
+
+- `request`: Execute an API operation.
+- `agent_decision`: Enable agent decision-making.
+- `condition`: Implement conditional branching.
+- `sampling`: Request LLM completions.
+- `capability`: Execute an imported capability.
 
 ### Requests
 
 Requests represent single API operations with:
-- One endpoint
-- One HTTP method
-- Defined input/output contract
+
+- One endpoint.
+- One HTTP method.
+- Defined input/output contract.
 
 Example request specification:
+
 ```yaml
 getWeatherRequest:
   format: OpenAPI
@@ -97,17 +149,99 @@ getWeatherRequest:
 
 ### State Management
 
-Three-tier state system:
+A2S handles data through storage types and lifecycles:
+
+- **Storage Types**:
+  - **Persistent**: Data that persists across multiple sessions or executions.
+  - **Transient**: Data that exists only during the execution of the capability.
+
+- **Lifecycles**:
+  - **Capability**: Data exists for the duration of the capability's execution.
+  - **Session**: Data persists for the user's session.
+  - **Execution**: Data exists only for the current execution step.
+
+Example state management definition:
+
 ```yaml
-temperature:
-  type: number          # string, number, boolean, date, object, array
-  value: $.temp         # Direct value or reference
-  storage: temporary    # service, shared, temporary
+state:
+  input:
+    - services["api.name"].oauth2.client_id
+  paramName:
+    type: number
+    lifecycle: capability
+    required: true
+
+  output:
+    persistent:
+      - services["api.name"].oauth2.access_token
+    transient:
+      resultData:
+        type: object
+        schema:
+          field: string
+
+  runtime:
+    transient:
+      tempData:
+        type: object
+        schema:
+          field: number
 ```
 
-- **Service Variables**: Encrypted domain-specific values
-- **Shared Variables**: Cross-capability accessible data
-- **Temporary Variables**: Execution-scoped transient data
+### Services
+
+Services define the external APIs that the capability interacts with:
+
+```yaml
+services:
+  "api.example.com":
+    type: "service-type"
+    oauth2:                    # Authentication method
+      read:
+        - client_id
+        - client_secret
+      write:
+        - access_token
+        - refresh_token
+    tasks: ["taskName"]        # Associated tasks
+```
+
+### Example Task Definition
+
+```yaml
+tasks:
+  - id: taskName
+    type: request
+    requires_service: "api.example.com"
+    definition:
+      request: #/requests/requestName
+    input_mapping:
+      field:
+        type: string
+        value: ${reference}
+    error_handling:
+      on_failure:
+        action: "continue"
+        message: "Error message"
+```
+
+### Flow Control
+
+Define execution flow with sequential, parallel, or conditional steps:
+
+```yaml
+flow:
+  type: sequence
+  steps:
+    - task: firstTask
+    - type: condition
+      if: "${condition}"
+      then:
+        type: parallel
+        tasks: ["task1", "task2"]
+      else:
+        task: "alternativeTask"
+```
 
 ### A2S Registry
 
@@ -117,45 +251,143 @@ Agents can break down user queries into multiple intents and utilize the registr
 
 ![A2S Flow](diagram.png)
 
-### Creating a New Capability
+## Best Practices
 
-Each capability begins with a header containing essential metadata:
+1. **Security First**
+   - Always specify audit status.
+   - Define minimum required permissions.
+   - Use secure state management.
 
-```yaml
-a2s: "<protocol_version>"
-id: "<capability_id>"
-description: "<capability_description>"
-domains:
-  - "<domain1>"
-  - "<domain2>"
-version: "<capability_version>"
-status: "stable"          # stable, beta, deprecated
-support:
-  url: "https://github.com/org/a2s-capabilities/issues/new?template=capability_issue.md&title=[my-capability-name]"
-checksum: "<checksum_value>"
-authors:
-  - name: "<author_name>"
-execution:
-  type: "<execution_type>"
-  tasks:
+2. **Service Integration**
+   - One service per distinct API.
+   - Explicit task associations.
+   - Clear authentication requirements.
+
+3. **State Management**
+   - Minimize persistent state.
+   - Use appropriate lifecycles.
+   - Clear data schemas.
+
+4. **Error Handling**
+   - Define failure actions.
+   - Include meaningful messages.
+   - Consider fallback options.
+
+5. **Capability Design**
+   - Keep atomic capabilities focused and reusable.
+   - Use aggregate capabilities for complex workflows.
+   - Carefully manage dependency chains.
+   - Verify checksums for all dependencies.
+
+## SDK Usage
+
+### TypeScript/JavaScript
+
+```typescript
+import { A2SRegistry, A2SAgent } from '@a2s/core';
+
+const registry = new A2SRegistry();
+const agent = new A2SAgent();
+
+const capabilities = registry.findCapability("User query");
+
+async function executeCapability(capability) {
+  if (!agent.verifyChecksum(capability)) return;
+  
+  const stateStore = new StateStore();
+  await agent.resolveState(capability, stateStore);
+  
+  const executor = new CapabilityExecutor(stateStore);
+  return await executor.execute(capability);
+}
 ```
 
-#### Example Capability
-
-Here's a complete example of a weather-related capability:
+### Example
 
 ```yaml
 a2s: 1.0.0
 id: WeatherUpdateCapability
 description: Gets weather and posts noteworthy updates
-domains:
-  - "api.weather.com"
 version: 1.0.0
 authors:
   - name: "Jane Smith"
 checksum: "<calculated_checksum>"
-scope: 
-source_url: https://github.com/org/repo/weather/analysis.yaml  # Optional direct link
+type: "aggregate"
+source_url: https://github.com/org/repo/weather/analysis.yaml
+
+audit:
+  status: "audited"
+  provider: "SecurityFirm Inc."
+  id: "AUDIT-2024-001"
+  url: "https://security.example.com/audits/AUDIT-2024-001"
+
+permissions:
+  level: "elevated"
+  description: "Requires ability to post on social media and send alerts"
+  capabilities:
+    - "post_social_media"
+    - "send_alerts"
+
+services:
+  "api.weather.com":
+    type: "weather-api"
+    oauth2:
+      read:
+        - client_id
+        - client_secret
+      write:
+        - access_token
+        - refresh_token
+    tasks: ["getWeather"]
+    
+  "api.twitter.com":
+    type: "social-media"
+    oauth2:
+      read:
+        - client_id
+        - client_secret
+      write:
+        - access_token
+    tasks: ["postSocialMedia"]
+    
+  "twilio.com":
+    type: "messaging"
+    apiKey:
+      read:
+        - key
+    tasks: ["sendAlert"]
+
+state:
+  input:
+    - services["api.weather.com"].oauth2.client_id
+    - services["api.weather.com"].oauth2.client_secret
+    - services["api.twitter.com"].oauth2.client_id
+    - services["api.twitter.com"].oauth2.client_secret
+    - services["twilio.com"].apiKey.key
+    city:
+      type: string
+      lifecycle: capability
+      required: true
+
+  output:
+    persistent:
+      - services["api.weather.com"].oauth2.access_token
+      - services["api.weather.com"].oauth2.refresh_token
+      - services["api.twitter.com"].oauth2.access_token
+    transient:
+      weatherDetails:
+        type: object
+        schema:
+          location: string
+          weather: string
+
+  runtime:
+    transient:
+      coordinates:
+        type: object
+        schema:
+          long: number
+          lat: number
 
 requests:
   getWeatherRequest:
@@ -184,114 +416,100 @@ requests:
                         temperature:
                           type: number
 
-execution:
+tasks:
+  - id: getWeather
+    type: request
+    requires_service: "api.weather.com"
+    definition:
+      request: #/requests/getWeatherRequest
+    input_mapping:
+      city:
+        type: string
+        value: ${city}
+    output_mapping:
+      temperature:
+        type: number
+        value: $.weather.temperature
+    error_handling:
+      on_failure:
+        action: "continue"
+        message: "Weather data fetch failed"
+
+  - id: decideToPost
+    type: agent_decision
+    description: Evaluate if weather is noteworthy
+    output_mapping:
+      shouldPost:
+        type: boolean
+        value: ${decision}
+
+  - id: postSocialMedia
+    type: request
+    requires_service: "api.twitter.com"
+    description: Post to social media
+
+  - id: sendAlert
+    type: request
+    requires_service: "twilio.com"
+    description: Send weather alert
+
+  - id: logDecision
+    type: request
+    description: Log that no action was taken
+
+flow:
   type: sequence
-  tasks:
-    - id: getWeather
-      type: request
-      definition:
-        format: "OpenAPI"
-        request: #/requests/getWeatherRequest
-      input_mapping:
-        city:
-          type: string
-          value: ${location}
-          storage: temporary
-      output_mapping:
-        temperature:
-          type: number
-          value: $.weather.temp
-          storage: temporary
+  steps:
+    - task: getWeather
+    - task: decideToPost
+    - type: condition
+      if: "${decideToPost.shouldPost}"
+      then:
+        type: parallel
+        tasks: ["postSocialMedia", "sendAlert"]
+      else:
+        task: "logDecision"
 
-    - id: decideToPost
-      type: agent_decision
-      description: Evaluate if weather is noteworthy
+examples:
+  - description: "Post weather alert for high temperature"
+    input:
+      services:
+        "api.weather.com":
+          oauth2:
+            client_id: "example_id"
+            client_secret: "example_secret"
+        "api.twitter.com":
+          oauth2:
+            client_id: "twitter_id"
+            client_secret: "twitter_secret"
+        "twilio.com":
+          apiKey:
+            key: "twilio_key"
+      city: "San Francisco"
+    expected_output:
+      weatherDetails:
+        location: "San Francisco"
+        weather: "32°C, Sunny"
+      result: "Posted: High temperature alert for San Francisco. Current temperature: 32°C"
+
+  - description: "Normal weather update without alert"
+    input:
+      services:
+        "api.weather.com":
+          oauth2:
+            client_id: "example_id"
+            client_secret: "example_secret"
+        "api.twitter.com":
+          oauth2:
+            client_id: "twitter_id"
+            client_secret: "twitter_secret"
+      city: "Seattle"
+    expected_output:
+      weatherDetails:
+        location: "Seattle"
+        weather: "18°C, Cloudy"
+      result: "Weather conditions normal, no alert needed"
 ```
-
-### Advanced Features
-
-#### Conditional Tasks
-
-Tasks can specify their next execution step using the `next` field:
-
-```yaml
-- id: checkAuth
-  type: condition
-  definition:
-    condition: ${!auth_token || auth_token_expired}
-  next:
-    true: getToken
-    false: getWeather
-
-- id: getToken
-  type: request
-  definition:
-    request: #/requests/getTokenRequest
-  next: getWeather
-```
-
-## SDK Usage
-
-### TypeScript/JavaScript
-```typescript
-import { A2SRegistry, A2SAgent } from '@a2s/core';
-
-const registry = new A2SRegistry("https://registry.example.com");
-const agent = new A2SAgent();
-
-agent.useRegistries([registry]);
-
-async function handleRequest(query: string) {
-  const { intents, parameters } = agent.parseQuery(query);
-  const capabilities = await registry.searchCapabilities(intents); 
-
-  for (const capability of capabilities) {
-    if (!agent.verifyChecksum(capability)) continue;
-    
-    const stateStore = new StateStore();
-    await agent.resolveState(capability, stateStore);
-    
-    const executor = new CapabilityExecutor(stateStore);
-    const response = await executor.executeCapabilityTasks(capability);
-    
-    return agent.processResponse(response);
-  }
-}
-```
-
-### Python
-```python
-from a2s import A2SRegistry, A2SAgent
-
-registry = A2SRegistry("https://registry.example.com")
-agent = A2SAgent()
-
-# Similar usage pattern to TypeScript/JavaScript
-```
-
-## Best Practices
-
-1. **Request Design**
-   - One operation per request
-   - Explicit contracts
-   - Clear error handling
-
-2. **State Management**
-   - Prefer temporary storage
-   - Explicit typing
-   - Minimal shared state
-
-3. **Agent Decisions**
-   - Clear decision criteria
-   - Explicit outcome handling
-   - Thorough documentation
-
-## Future Development
-
-- GraphQL, AsyncAPI, and gRPC support
-- Enhanced decision framework
-- Capability composition tools
-- Additional language SDKs
 
 ## License
 
