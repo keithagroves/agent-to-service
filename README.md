@@ -52,7 +52,9 @@ Each capability is specified in YAML or JSON format with mandatory metadata:
 ```yaml
 a2s: 1.0.0               # Protocol version (required)
 id: "CapabilityID"       # Unique identifier
-description: "Capability description"
+description: | 
+  Capability description
+  This is the description
 version: 1.0.0           # Capability version
 authors:
   - name: "Author Name"
@@ -111,8 +113,40 @@ Tasks come in several types:
 - `request`: Execute an API operation.
 - `agent_decision`: Enable agent decision-making.
 - `condition`: Implement conditional branching.
-- `sampling`: Request LLM completions.
 - `capability`: Execute an imported capability.
+- `prompt`:  load prompt for agent.
+
+```yaml
+tasks:
+  - id: analyzeWeather
+    type: prompt
+    state:
+    input:
+      - temperature: 
+          mapping: "getWeather.outputs.temperature"
+      - conditions: 
+          mapping: "getWeather.outputs.conditions"
+      - threshold: 
+          mapping: "inputs.threshold"
+        output:
+          analysis: string
+          severity: string
+    prompt:
+      template: |
+        Analyze the following weather conditions:
+        Temperature: {temperature}°C
+        Conditions: {conditions}
+        Alert Threshold: {threshold}°C
+
+        Provide a brief analysis of these conditions and determine their severity.
+        Return your response in this format:
+        Analysis: [your weather analysis]
+        Severity: [high|medium|low]
+      format:
+        analysis: string
+        severity: 
+          type: string
+          enum: [high, medium, low]
 
 ### Requests
 
@@ -163,9 +197,48 @@ A2S handles data through well-defined parameters at both the capability and task
 - **Persistent**: Data that should be stored and persists beyond the execution of the capability.
 - **Session**: Data that persists for the duration of the user's session.
 - **Capability**: Data that exists only during the capability's execution.
-- **Execution**: Data that exists only during the execution of a single task.
+- **Task**: Data that exists only during the execution of a single task.
 
 By specifying lifecycles, clients know how long to retain outputs and how to manage data securely.
+
+
+### Parameter References
+
+A2S uses three mechanisms for referencing parameters:
+
+1. **Schema References** (`$ref`): References type definitions and schemas
+```yaml
+inputs:
+  user_type:
+    $ref: "#/schemas/UserType"    # References schema definition
+```
+
+2. **Runtime Values** (`mapping`): References values from other tasks or capability inputs
+```yaml
+inputs:
+  temperature:
+    mapping: "getWeather.outputs.temperature"  # References actual value
+  message:
+    mapping: "Current weather: {getWeather.outputs.conditions}"  # Template with value
+```
+
+3. **Conditional References**: Used in flow control and conditions
+```yaml
+condition: "{decideToPost.outputs.shouldPost} == true"
+```
+
+#### Reference Paths
+- `inputs.*` - Capability-level input values
+- `outputs.*` - Capability-level output values
+- `taskId.outputs.*` - Specific task's output values
+- `capability.*` - Access to capability metadata
+
+#### Best Practices
+- Use `$ref` when referencing schema definitions
+- Use `mapping` when referencing runtime values
+- Use single curly braces `{value}` for interpolation in mappings and conditions
+- Always use full paths to make data flow explicit
+```
 
 ### Services
 
@@ -300,7 +373,8 @@ Below is an example of an aggregate capability that fetches weather information 
 ```yaml
 a2s: 1.0.0
 id: WeatherUpdateCapability
-description: Gets weather and posts updates based on a threshold temperature
+description: |
+  Gets weather and posts updates based on a threshold temperature
 version: 1.0.0
 type: aggregate
 
@@ -420,16 +494,16 @@ tasks:
 
   - id: decideToPost
     type: agent_decision
-    inputs:
+     inputs:
       threshold:
-        $ref: "#/inputs/threshold"
+        $ref: "#/inputs/threshold"      # Schema reference
       temperature:
-        $ref: "#/tasks/getWeather/outputs/temperature"
+        mapping: "getWeather.outputs.temperature"  # Runtime value
     outputs:
       shouldPost:
         type: boolean
         description: "Whether to post based on the threshold"
-        lifecycle: execution  # Data exists only during this task's execution
+        lifecycle: flow
     definition:
       logic: |
         shouldPost = temperature >= threshold
@@ -437,7 +511,7 @@ tasks:
   - id: postSocialMedia
     type: request
     requires_service: "api.twitter.com"
-    condition: "{{decideToPost.outputs.shouldPost}} == true"
+    condition: "{decideToPost.outputs.shouldPost} == true"
     inputs:
       oauth2:
         client_id:
@@ -446,7 +520,7 @@ tasks:
           $ref: "#/inputs/services/api.twitter.com/oauth2/client_secret"
       message:
         type: string
-        value: "Current weather in {{city}}: {{getWeather.outputs.conditions}}, {{getWeather.outputs.temperature}}°C"
+         mapping: "Current weather in {inputs.city}: {getWeather.outputs.conditions}, {getWeather.outputs.temperature}°C"
     outputs:
       post_id:
         type: string
