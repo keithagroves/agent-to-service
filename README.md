@@ -295,15 +295,17 @@ Define execution flow with sequential, parallel, or conditional steps:
 flow:
   type: sequence
   steps:
-    - task: getWeatherTask
+    - task: getWeatherTask 
     - task: decideToPost
-    - type: condition
-      if: "decideToPost.outputs.shouldPost"
-      then:
-        tasks:
+    - condition:
+        if: "decideToPost.outputs.shouldPost"
+        then:
           - task: postToSocialMedia
-      else:
-        task: logDecision
+        else:
+          - task: logDecision
+    - parallel:
+        - task: task1
+        - task: task2
 ```
 
 ### A2S Registry
