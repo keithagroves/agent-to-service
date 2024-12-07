@@ -60,18 +60,19 @@ authors:
   - name: "Author Name"
 type: "aggregate"        # aggregate | atomic
 checksum: "<sha256>"     # SHA-256 hash
+security:
+  audit:
+    status: "audited"      # audited | unaudited | in-progress
+    provider: "SecurityFirm Inc."
+    id: "AUDIT-2024-001"
+    url: "https://security.example.com/audits/AUDIT-2024-001"
 
-audit:
-  status: "audited"      # audited | unaudited | in-progress
-  provider: "SecurityFirm Inc."
-  id: "AUDIT-2024-001"
-  url: "https://security.example.com/audits/AUDIT-2024-001"
-
-permissions:
-  level: "elevated"      # basic | elevated | admin
-  description: "Required permissions description"
-  capabilities:
-    - "capability_name"
+  permissions:
+    level: "elevated"      # basic | elevated | admin
+    description: "Required permissions description"
+    capabilities:
+      - "capability_name"
+    
 ```
 
 ### Capability Types and Composition
@@ -385,17 +386,18 @@ authors:
 checksum: "<calculated_checksum>"
 source_url: https://github.com/org/repo/weather/WeatherUpdateCapability.yaml
 
-audit:
-  status: audited
-  provider: SecurityFirm Inc.
-  id: AUDIT-2024-001
-  url: https://security.example.com/audits/AUDIT-2024-001
+security:
+  audit:
+    status: audited
+    provider: SecurityFirm Inc.
+    id: AUDIT-2024-001
+    url: https://security.example.com/audits/AUDIT-2024-001
 
-permissions:
-  level: elevated
-  description: Requires ability to post on social media
-  capabilities:
-    - post_social_media
+  permissions:
+    level: elevated
+    description: Requires ability to post on social media
+    capabilities:
+      - post_social_media
 
 services:
   api.weather.com:

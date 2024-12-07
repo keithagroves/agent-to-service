@@ -12,17 +12,18 @@ authors:
 checksum: "<calculated_checksum>"   # SHA-256 hash of the capability file
 source_url: "<URL to capability source code or repository>"  # Optional
 
-audit:
-  status: "<audited|unaudited|in-progress>"
-  provider: "<Audit Provider Name>"
-  id: "<Audit ID>"
-  url: "<URL to audit report>"
+security:
+  audit:
+    status: "<audited|unaudited|in-progress>"
+    provider: "<Audit Provider Name>"
+    id: "<Audit ID>"
+    url: "<URL to audit report>"
 
-permissions:
-  level: "<basic|elevated|admin>"
-  description: "<Description of required permissions>"
-  capabilities:
-    - "<capability_name>"           # List of capabilities required
+  permissions:
+    level: "<basic|elevated|admin>"
+    description: "<Description of required permissions>"
+    capabilities:
+      - "<capability_name>"           # List of capabilities required
 
 registries:
   default: "https://registry.a2s.dev"
