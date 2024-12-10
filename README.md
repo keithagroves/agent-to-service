@@ -2,101 +2,102 @@
 
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) [![Discord](https://img.shields.io/badge/Discord-A2S_PROTOCOL-blue?logo=discord&logoColor=white)](https://discord.gg/mMfxvMtHyS)
 
-The **Agent-to-Service Protocol (A2S)** enables AI agents to dynamically discover and execute service capabilities at runtime. A2S defines how agents find various capabilities and securely interact with them, making it a powerful framework for integrating AI with APIs.
+The **Agent-to-Service Protocol (A2S)** provides a standardized framework for AI agents to dynamically discover, understand, and interact with arbitrary services at runtime. It enables agents to go beyond their pre-programmed functionalities by discovering new capabilities, orchestrating external APIs, and handling complex workflows—all while ensuring structured, auditable, and secure operations.
 
 ## Overview
 
-**Why A2S?** Create AI agents that can dynamically discover and execute new capabilities at runtime, extending beyond their initial programming.
+A2S is designed for scenarios where AI agents must operate in dynamic environments, discovering and invoking new services as they become available. By defining capabilities, parameters, tasks, and flow controls, A2S standardizes how agents interface with services and compose functionalities. 
 
-## Example
-
-Here's how A2S works in a chat-based interaction:
+**Example Scenario:**
 
 ```
-┌──────────────────── A2S Chat Session ────────────────────┐
+┌────────────────── A2S Chat Session ──────────────────┐
 
 👤 [USER] > Check the weather for my picnic in Central Park and tweet it.
 
-🤖 [AGENT] > Found capability: WeatherUpdateCapability
-            └─ Services: api.weather.com, api.twitter.com
+🤖 [AGENT] > Discovered capability: WeatherUpdateCapability
+             Services: api.weather.com, api.twitter.com
 
-   [AGENT] > Task breakdown:
-            ├─ 1. Get weather forecast
-            └─ 2. Post weather update
+   [AGENT] > Proposed plan:
+             1. Retrieve the weather forecast
+             2. Post a weather update on Twitter
 
-   [AGENT] > Would you like a specific message with the weather?
+   [AGENT] > Do you want a specific message for the tweet?
 
 👤 [USER] > Yes, mention it's for a weekend picnic.
 
-🤖 [AGENT] > Tweet posted: "Weekend picnic weather update for Central Park: 
-            Sunny with light clouds, high of 75°F. Perfect picnic weather! 🧺☀️"
-└───────────────────────────────────────────────────────────┘
+🤖 [AGENT] > Tweet posted:
+             "Weekend picnic weather update for Central Park:
+              Sunny with light clouds, high of 75°F.
+              Perfect picnic weather! 🧺☀️"
+
+└────────────────────────────────────────────────────────┘
 ```
+
+In this example, the agent dynamically identifies relevant capabilities, executes tasks in sequence, and completes the user's request without prior hardcoding of the involved services.
 
 ## Core Features
 
-- **Agent-First Design**: Purpose-built for AI agents to understand and orchestrate API services.
-- **Dynamic Discovery**: Runtime service and capability discovery without pre-programming.
-- **Atomic Operations**: One request per API operation for clarity and reliability.
-- **Secure Parameter Management**: Data handling with well-defined inputs, outputs, and lifecycles.
-- **Flow Control**: Support for conditional execution and agent decision-making.
-- **Security & Auditing**: Built-in audit trail and permission management.
-- **Capability Composition**: Support for atomic and aggregate capabilities.
+- **Agent-First Design:** Tailored for AI agents to discover and orchestrate capabilities programmatically.
+- **Dynamic Discovery:** Agents can query registries for new capabilities and incorporate them at runtime.
+- **Atomic Operations:** Each API operation is modeled as a discrete, auditable, and reliable request.
+- **Secure Parameter Management:** Strong controls over input/output parameters, data lifecycles, and credential handling.
+- **Flow Control:** Built-in constructs for conditional logic, looping, parallelism, and error handling.
+- **Auditing & Permissions:** Integrated auditing, security levels, and permissions to ensure trust and compliance.
+- **Composability:** Simple atomic capabilities can be composed into aggregate capabilities for complex workflows.
 
 ## Core Concepts
 
 ### Capabilities
 
-Each capability is specified in YAML or JSON format with mandatory metadata:
+A **capability** represents a unit of functionality—either a simple (atomic) operation or a complex (aggregate) workflow. Capabilities are defined in YAML or JSON metadata, which includes versioning, authorship, security posture, and dependencies.
+
+**Example Capability Metadata:**
 
 ```yaml
-a2s: 1.0.0               # Protocol version (required)
-id: "CapabilityID"       # Unique identifier
-description: | 
-  Capability description
-  This is the description
-version: 1.0.0           # Capability version
+a2s: 1.0.0            # Protocol version (required)
+id: "CapabilityID"
+description: "Handles weather updates"
+version: 1.0.0
 authors:
   - name: "Author Name"
-type: "aggregate"        # aggregate | atomic
-checksum: "<sha256>"     # SHA-256 hash
+type: "aggregate"     # aggregate or atomic
+checksum: "<sha256>"  # SHA-256 integrity check
+last_updated: Date
+tags: []
 security:
   audit:
-    status: "audited"      # audited | unaudited | in-progress
+    status: "audited" # audited | unaudited | in-progress
     provider: "SecurityFirm Inc."
     id: "AUDIT-2024-001"
     url: "https://security.example.com/audits/AUDIT-2024-001"
-
   permissions:
-    level: "elevated"      # basic | elevated | admin
-    description: "Required permissions description"
+    level: "elevated" # basic | elevated | admin
+    description: "May access user location"
     capabilities:
       - "capability_name"
-    
 ```
 
-### Capability Types and Composition
+### Capability Types
 
-A2S supports two types of capabilities:
+**Atomic Capabilities:**  
+- Self-contained, minimal functionality.  
+- No external imports.  
+- Serve as building blocks, e.g., making a single API request.
 
-1. **Atomic Capabilities**
-   - Self-contained with no external dependencies.
-   - Cannot import other capabilities.
-   - Building blocks for larger functionalities.
-
-2. **Aggregate Capabilities**
-   - Can import and compose atomic capabilities.
-   - Cannot import other aggregate capabilities (prevents circular dependencies).
-   - Used for complex workflows and multi-step processes.
+**Aggregate Capabilities:**  
+- Can import and orchestrate multiple atomic capabilities.  
+- Cannot import other aggregates (to avoid overly complex dependency chains).  
+- Ideal for multi-step workflows, e.g., retrieving data and then transforming or posting it elsewhere.
 
 ### Dependencies and Registries
 
-Capabilities can define their dependencies and registry sources:
+Capabilities declare their dependencies and their source registries. Agents can query registries to find and integrate capabilities:
 
 ```yaml
 registries:
   default: "https://registry.a2s.dev"
-  custom: "https://custom-registry.company.com"
+  custom: "https://custom-registry.example.com"
 
 dependencies:
   weather:
@@ -107,248 +108,185 @@ dependencies:
     registry: registries.custom
 ```
 
-### Tasks
 
-Tasks come in several types:
+### Parameter Management
 
-- `request`: Execute an API operation.
-- `agent_decision`: Enable agent decision-making.
-- `condition`: Implement conditional branching.
-- `capability`: Execute an imported capability.
-- `prompt`:  load prompt for agent.
+A2S strictly defines parameter handling to ensure data integrity, clarity, and security:
 
-```yaml
-tasks:
-  - id: analyzeWeather
-    type: prompt
-    state:
-    input:
-      - temperature: 
-          mapping: "getWeather.outputs.temperature"
-      - conditions: 
-          mapping: "getWeather.outputs.conditions"
-      - threshold: 
-          mapping: "inputs.threshold"
-        output:
-          analysis: string
-          severity: string
-    prompt:
-      template: |
-        Analyze the following weather conditions:
-        Temperature: {temperature}°C
-        Conditions: {conditions}
-        Alert Threshold: {threshold}°C
-
-        Provide a brief analysis of these conditions and determine their severity.
-        Return your response in this format:
-        Analysis: [your weather analysis]
-        Severity: [high|medium|low]
-      format:
-        analysis: string
-        severity: 
-          type: string
-          enum: [high, medium, low]
-
-### Requests
-
-Requests represent single API operations with:
-
-- One endpoint.
-- One HTTP method.
-- Defined input/output contract.
-
-Example request specification:
-
-```yaml
-getWeatherRequest:
-  format: OpenAPI
-  specification:
-    openapi: 3.0.1
-    info:
-      title: Weather API
-      version: 1.0.0
-    servers:
-      - url: https://api.weather.com
-    paths:
-      /weather/{city}:    # Single endpoint
-        get:              # Single operation
-          summary: "Get weather for a city"
-          parameters:
-            - in: path
-              name: city
-              required: true
-              schema:
-                type: string
-```
-
-### Parameter Management and Lifecycles
-
-A2S handles data through well-defined parameters at both the capability and task levels. Using OpenAPI conventions ensures consistency and clarity in data definitions. Lifecycles are specified for outputs to inform clients how to store and manage data.
-
-- **Capability-Level Parameters**:
-  - **Inputs**: Initial parameters required to start the capability.
-  - **Outputs**: Final parameters after the capability completes, with defined lifecycles.
-
-- **Task-Level Parameters**:
-  - **Inputs**: Data required for the task to execute.
-  - **Outputs**: Data produced by the task, with defined lifecycles.
-
-#### Lifecycles
-
-- **Persistent**: Data that should be stored and persists beyond the execution of the capability.
-- **Session**: Data that persists for the duration of the user's session.
-- **Capability**: Data that exists only during the capability's execution.
-- **Task**: Data that exists only during the execution of a single task.
-
-By specifying lifecycles, clients know how long to retain outputs and how to manage data securely.
-
+**Parameter Scope and Lifecycle:**
+- **Inputs/Outputs at Capability Level:** Required at capability start (inputs) and produced at completion (outputs).
+- **Inputs/Outputs at Task Level:** Required and produced at each step within a capability.
+- **Data Lifecycles:**  
+  - **Persistent:** Data persists beyond capability execution.  
+  - **Session:** Data available for the user's ongoing session.  
+  - **Capability:** Data valid only during capability execution.  
+  - **Task:** Data scoped solely to a single task.
 
 ### Parameter References
 
-A2S uses three mechanisms for referencing parameters:
+A2S supports multiple referencing modes to streamline data access:
 
-1. **Schema References** (`$ref`): References type definitions and schemas
-```yaml
-inputs:
-  user_type:
-    $ref: "#/schemas/UserType"    # References schema definition
-```
+1. **Schema References:**  
+   Link directly to schema definitions:
+   ```yaml
+   inputs:
+     user_type:
+       $ref: "#/schemas/UserType"
+   ```
 
-2. **Runtime Values** (`mapping`): References values from other tasks or capability inputs
-```yaml
-inputs:
-  temperature:
-    mapping: "getWeather.outputs.temperature"  # References actual value
-  message:
-    mapping: "Current weather: {getWeather.outputs.conditions}"  # Template with value
-```
+2. **Value References:**  
+   Dynamically reference outputs of other tasks, inputs, or service credentials:
+   ```yaml
+   mappings:
+     temperature: {getWeather.outputs.temperature}
+     userId: {inputs.user.id}
+     token: {services.weather-api.auth.token}
+     version: {capability.version}
+   ```
 
-3. **Conditional References**: Used in flow control and conditions
-```yaml
-condition: "{decideToPost.outputs.shouldPost} == true"
-```
+3. **String Templates:**  
+   Inline references within strings:
+   ```yaml
+   message: "Current weather in {inputs.city}: {getWeather.outputs.conditions}"
+   ```
 
-#### Reference Paths
-- `inputs.*` - Capability-level input values
-- `outputs.*` - Capability-level output values
-- `taskId.outputs.*` - Specific task's output values
-- `capability.*` - Access to capability metadata
+4. **Conditional References:**  
+   Control flow based on dynamic conditions:
+   ```yaml
+   condition:
+     if: {decideToPost.outputs.shouldPost}
+   ```
 
-#### Best Practices
-- Use `$ref` when referencing schema definitions
-- Use `mapping` when referencing runtime values
-- Use single curly braces `{value}` for interpolation in mappings and conditions
-- Always use full paths to make data flow explicit
-```
+### Service Integration
 
-### Services
-
-Services define the external APIs that the capability interacts with:
+Define how capabilities interact with external APIs, including credential management and rate limits:
 
 ```yaml
 services:
-  "api.example.com":
-    type: "weather-api"
-    oauth2:                    # Authentication method
-      read:
-        - client_id
-        - client_secret
-      write:
-        - access_token
-        - refresh_token
-    tasks: ["getWeatherTask"]  # Associated tasks
+  api.weather.com:
+    credentials_url: "https://weather.com/api/signup"
+    storage:
+      oauth2:
+        read:
+          - client_id
+          - client_secret
+        write:
+          - access_token
+          - refresh_token
+    rate_limits:
+      requests_per_second: 10
+      burst: 20
 ```
 
-### Example Task Definition
+**Suggestions for Improvement:**  
+- Standardize authentication methods (OAuth2, API keys, etc.) through schemas.
+- Introduce optional fields for Service-Level Agreements (SLAs) or expected latency bounds.
+
+### Flow Control
+
+A2S supports a rich set of flow control constructs for orchestrating tasks:
+
+```yaml
+flow:
+  steps:
+    # Sequential
+    - task: getWeather
+
+    # Conditional Branch
+    - if: {weather.outputs.temperature} > 25
+      task: sendAlert
+    else:
+      task: logNormal
+
+    # Loops
+    - repeat: 3
+      task: retryOperation
+    
+    - while: {status.outputs.pending}
+      task: checkStatus
+      timeout: 300000 # 5 minutes
+
+    # Parallel Execution
+    - parallel:
+        - task: task1
+        - task: task2
+      maxConcurrent: 2
+
+    # Error Handling
+    - try:
+        task: riskyOperation
+      catch:
+        task: handleError
+        onError:
+          - RATE_LIMIT
+          - TIMEOUT
+```
+
+### Tasks
+
+Tasks are fundamental units of work within a capability. They can involve making requests, evaluating conditions, composing prompts, or invoking other capabilities.
+
+**Example Task:**
 
 ```yaml
 tasks:
   - id: getWeatherTask
     type: request
-    requires_service: "api.example.com"
-    inputs:
-      city:
-        type: string
-        description: "Name of the city"
-    outputs:
-      temperature:
-        type: number
-        format: float
-        description: "Temperature in Celsius"
-        lifecycle: capability  # Data exists during capability execution
-      conditions:
-        type: string
-        description: "Weather conditions"
-        lifecycle: capability
-    definition:
-      request: "#/requests/getWeatherRequest"
-    error_handling:
-      on_failure:
-        action: "continue"
-        message: "Error fetching weather data"
+    service: "api.example.com"
+    request: "#/requests/getWeatherRequest"
+    input:
+      mappings:
+        cityId: {inputs.cityId}
+        apiKey: {services.weather.auth.apiKey}
+    output:
+      mappings:
+        temperature: response.temperature
+        conditions: response.conditions
+    error:
+      mappings:
+        message: error.message
+        code: error.code
 ```
 
-### Flow Control
-
-Define execution flow with sequential, parallel, or conditional steps:
-
-```yaml
-flow:
-  type: sequence
-  steps:
-    - task: getWeatherTask 
-    - task: decideToPost
-    - condition:
-        if: "decideToPost.outputs.shouldPost"
-        then:
-          - task: postToSocialMedia
-        else:
-          - task: logDecision
-    - parallel:
-        - task: task1
-        - task: task2
-```
+**Suggestions for Improvement:**  
+- Introduce standardized error codes and categories for uniform handling.
+- Consider task annotations for debugging and tracing.
 
 ### A2S Registry
 
-The A2S Registries enable agents to query and discover new capabilities. The default registry uses a graph database that allows agents to perform semantic searches for relevant capabilities.
+A2S registries are centralized repositories that store and organize capabilities. Agents can query these registries using semantic search, enabling them to find capabilities that match user intentions or required functionalities.
 
-Agents can break down user queries into multiple intents and utilize the registry to determine the capabilities that will provide the desired outcome.
+**Visual Overview:**
 
-![A2S Flow](diagram.png)
+```
+User Query
+    ↓
+Agent → Registry (semantic search) → Capabilities
+    ↓
+       Execute best-matching capabilities to fulfill the request
+```
+
+**Suggestions for Improvement:**  
+- Offer advanced search filters (e.g., domain, author, security level).
+- Implement rating or reliability scores for capabilities.
 
 ## Best Practices
 
-1. **Security First**
-   - Always specify audit status.
-   - Define minimum required permissions.
-   - Use secure parameter management.
-   - Specify lifecycles for outputs to manage data retention.
-
-2. **Service Integration**
-   - One service per distinct API.
-   - Explicit task associations.
-   - Clear authentication requirements.
-
-3. **Parameter Management**
-   - Use OpenAPI conventions for data definitions.
-   - Clearly define inputs and outputs.
-   - Define lifecycles for outputs.
-
-4. **Error Handling**
-   - Define failure actions.
-   - Include meaningful messages.
-   - Consider fallback options.
-
-5. **Capability Design**
-   - Keep atomic capabilities focused and reusable.
-   - Use aggregate capabilities for complex workflows.
-   - Carefully manage dependency chains.
-   - Verify checksums for all dependencies.
+- **Security & Auditing:**  
+  Always specify audit status, required permissions, and ensure data is securely managed.
+  
+- **Service Integration:**  
+  One distinct service per integration. Document credentials, rate limits, and authentication explicitly.
+  
+- **Error Handling:**  
+  Define fallback strategies, provide meaningful error messages, and handle timeouts, rate limits, and unexpected responses gracefully.
+  
+- **Capability Design:**  
+  Keep atomic capabilities focused. Use aggregates to combine multiple steps. Validate checksums and dependencies rigorously.
 
 ## SDK Usage
 
-### TypeScript/JavaScript
+A2S provides SDKs for simplifying integration:
 
 ```typescript
 import { A2SRegistry, A2SAgent } from '@a2s/core';
@@ -360,315 +298,16 @@ const capabilities = registry.findCapability("User query");
 
 async function executeCapability(capability) {
   if (!agent.verifyChecksum(capability)) return;
-
+  
   const parameterStore = new ParameterStore();
   await agent.resolveParameters(capability, parameterStore);
-
+  
   const executor = new CapabilityExecutor(parameterStore);
   return await executor.execute(capability);
 }
 ```
 
-## Example
-
-Below is an example of an aggregate capability that fetches weather information and posts an update to social media if the weather meets a certain condition. Parameters are defined at both the capability and task levels using OpenAPI conventions, and lifecycles are specified for outputs.
-
-```yaml
-a2s: 1.0.0
-id: WeatherUpdateCapability
-description: |
-  Gets weather and posts updates based on a threshold temperature
-version: 1.0.0
-type: aggregate
-
-authors:
-  - name: Jane Smith
-checksum: "<calculated_checksum>"
-source_url: https://github.com/org/repo/weather/WeatherUpdateCapability.yaml
-
-security:
-  audit:
-    status: audited
-    provider: SecurityFirm Inc.
-    id: AUDIT-2024-001
-    url: https://security.example.com/audits/AUDIT-2024-001
-
-  permissions:
-    level: elevated
-    description: Requires ability to post on social media
-    capabilities:
-      - post_social_media
-
-services:
-  api.weather.com:
-    type: weather-api
-    oauth2:
-      read:
-        - client_id
-        - client_secret
-      write:
-        - access_token
-        - refresh_token
-    tasks: [getWeather]
-
-  api.twitter.com:
-    type: social-media
-    oauth2:
-      read:
-        - client_id
-        - client_secret
-      write:
-        - access_token
-    tasks: [postSocialMedia]
-
-# Capability-level parameters
-inputs:
-  services:
-    api.weather.com:
-      oauth2:
-        client_id:
-          type: string
-          description: "Weather API client ID"
-        client_secret:
-          type: string
-          description: "Weather API client secret"
-    api.twitter.com:
-      oauth2:
-        client_id:
-          type: string
-          description: "Twitter API client ID"
-        client_secret:
-          type: string
-          description: "Twitter API client secret"
-  city:
-    type: string
-    description: "City name to fetch weather for"
-    example: "San Francisco"
-  threshold:
-    type: number
-    format: float
-    description: "Temperature threshold in Celsius"
-    example: 25
-
-outputs:
-  post_id:
-    type: string
-    description: "ID of the posted tweet"
-    lifecycle: persistent  # Client should store this data
-  weather:
-    type: object
-    properties:
-      temperature:
-        type: number
-        format: float
-        description: "Temperature in Celsius"
-      conditions:
-        type: string
-        description: "Weather conditions"
-    lifecycle: capability  # Data exists during capability execution
-
-tasks:
-  - id: getWeather
-    type: request
-    requires_service: "api.weather.com"
-    inputs:
-      city:
-        $ref: "#/inputs/city"
-      oauth2:
-        client_id:
-          $ref: "#/inputs/services/api.weather.com/oauth2/client_id"
-        client_secret:
-          $ref: "#/inputs/services/api.weather.com/oauth2/client_secret"
-    outputs:
-      temperature:
-        type: number
-        format: float
-        description: "Temperature in Celsius"
-        lifecycle: capability
-      conditions:
-        type: string
-        description: "Weather conditions"
-        lifecycle: capability
-    definition:
-      request: "#/requests/getWeatherRequest"
-    error_handling:
-      on_failure:
-        action: "continue"
-        message: "Weather data fetch failed"
-
-  - id: decideToPost
-    type: agent_decision
-     inputs:
-      threshold:
-        $ref: "#/inputs/threshold"      # Schema reference
-      temperature:
-        mapping: "getWeather.outputs.temperature"  # Runtime value
-    outputs:
-      shouldPost:
-        type: boolean
-        description: "Whether to post based on the threshold"
-        lifecycle: flow
-    definition:
-      logic: |
-        shouldPost = temperature >= threshold
-
-  - id: postSocialMedia
-    type: request
-    requires_service: "api.twitter.com"
-    condition: "{decideToPost.outputs.shouldPost} == true"
-    inputs:
-      oauth2:
-        client_id:
-          $ref: "#/inputs/services/api.twitter.com/oauth2/client_id"
-        client_secret:
-          $ref: "#/inputs/services/api.twitter.com/oauth2/client_secret"
-      message:
-        type: string
-         mapping: "Current weather in {inputs.city}: {getWeather.outputs.conditions}, {getWeather.outputs.temperature}°C"
-    outputs:
-      post_id:
-        type: string
-        description: "ID of the posted tweet"
-        lifecycle: persistent
-    definition:
-      request: "#/requests/postTweetRequest"
-    error_handling:
-      on_failure:
-        action: "continue"
-        message: "Failed to post on social media"
-
-flow:
-  type: sequence
-  steps:
-    - task: getWeather
-    - task: decideToPost
-    - task: postSocialMedia
-
-requests:
-  getWeatherRequest:
-    format: OpenAPI
-    specification:
-      openapi: 3.0.1
-      info:
-        title: "Weather API"
-        version: 1.0.0
-      servers:
-        - url: https://api.weather.com
-      paths:
-        /weather/{city}:
-          get:
-            summary: "Get current weather"
-            parameters:
-              - name: "city"
-                in: "path"
-                required: true
-                schema:
-                  type: "string"
-            responses:
-              '200':
-                description: "Successful weather data retrieval"
-                content:
-                  application/json:
-                    schema:
-                      type: "object"
-                      properties:
-                        temperature:
-                          type: "number"
-                          format: "float"
-                          description: "Current temperature in Celsius"
-                        conditions:
-                          type: "string"
-                          description: "Weather conditions"
-
-  postTweetRequest:
-    format: OpenAPI
-    specification:
-      openapi: 3.0.1
-      info:
-        title: "Twitter API"
-        version: 1.0.0
-      servers:
-        - url: https://api.twitter.com
-      paths:
-        /tweets:
-          post:
-            summary: "Post a new tweet"
-            requestBody:
-              required: true
-              content:
-                application/json:
-                  schema:
-                    type: "object"
-                    properties:
-                      message:
-                        type: "string"
-            responses:
-              '201':
-                description: "Tweet posted successfully"
-                content:
-                  application/json:
-                    schema:
-                      type: "object"
-                      properties:
-                        post_id:
-                          type: "string"
-                          description: "Unique identifier for the tweet"
-
-examples:
-  - description: "Post weather update when temperature exceeds threshold"
-    inputs:
-      services:
-        api.weather.com:
-          oauth2:
-            client_id: "weather_client_id"
-            client_secret: "weather_client_secret"
-        api.twitter.com:
-          oauth2:
-            client_id: "twitter_client_id"
-            client_secret: "twitter_client_secret"
-      city: "San Francisco"
-      threshold: 25
-    expected_outputs:
-      post_id: "123456789"
-      weather:
-        temperature: 28
-        conditions: "Sunny"
-    tasks:
-      getWeather:
-        outputs:
-          temperature: 28
-          conditions: "Sunny"
-      decideToPost:
-        outputs:
-          shouldPost: true
-
-  - description: "Do not post when temperature is below threshold"
-    inputs:
-      services:
-        api.weather.com:
-          oauth2:
-            client_id: "weather_client_id"
-            client_secret: "weather_client_secret"
-        api.twitter.com:
-          oauth2:
-            client_id: "twitter_client_id"
-            client_secret: "twitter_client_secret"
-      city: "Seattle"
-      threshold: 25
-    expected_outputs:
-      post_id: null
-      weather:
-        temperature: 18
-        conditions: "Cloudy"
-    tasks:
-      getWeather:
-        outputs:
-          temperature: 18
-          conditions: "Cloudy"
-      decideToPost:
-        outputs:
-          shouldPost: false
-```
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+

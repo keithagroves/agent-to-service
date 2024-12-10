@@ -1,0 +1,157 @@
+a2s: 1.0.0
+id: GetSpecificBreedInfoCapability
+description: |
+  Retrieves detailed information about a specific dog breed by name.
+  The flow:
+  1. Fetches a list of all breeds.
+  2. Selects the breed ID that matches the provided breed name.
+  3. Fetches the detailed information for that breed ID.
+version: 1.0.0
+type: atomic
+
+authors:
+  - name: "A2S Developer"
+    email: "dev@a2s.dev"
+
+checksum: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+source_url: "https://github.com/a2s/capabilities/dog-api"
+
+security:
+  audit:
+    status: "audited"
+    provider: "SecurityAudit Inc."
+    id: "AUDIT-2024-003"
+    url: "https://security.example.com/audits/AUDIT-2024-003"
+  permissions:
+    level: "basic"
+    description: "Requires read-only access to public Dog API endpoints"
+    capabilities:
+      - "api_read"
+
+services:
+  api.dogapi.dog:
+    baseUrl: "https://dogapi.dog/api/v2"
+    rate_limits:
+      requests_per_second: 10
+      burst: 20
+
+inputs:
+  breed_name:
+    type: string
+    description: "Name of the breed to fetch."
+    example: "Caucasian Shepherd Dog"
+    required: true
+
+outputs:
+  breed_details:
+    type: object
+    description: "Detailed information about the requested breed."
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      min_life:
+        type: integer
+      max_life:
+        type: integer
+      description:
+        type: string
+      hypoallergenic:
+        type: boolean
+    lifecycle: session
+
+tasks:
+  - id: listBreeds
+    type: request
+    service: "api.dogapi.dog"
+    request: "#/requests/listBreedsRequest"
+    output:
+      mappings:
+        all_breeds: response.data
+
+  - id: selectBreedId
+    type: agent_decision
+    input:
+      mappings:
+        requested_name: {inputs.breed_name}
+        breeds_list: {listBreeds.outputs.all_breeds}
+    prompt:
+      template: |
+        Given a list of breeds (breeds_list) and a requested_name, find the breed whose attributes.name matches requested_name exactly.
+        If found, return the breed's "id". If not found, return null.
+    output:
+      mappings:
+        selected_breed_id: response.selected_breed_id
+
+  - id: getBreedDetails
+    type: request
+    service: "api.dogapi.dog"
+    request: "#/requests/getBreedRequest"
+    input:
+      mappings:
+        id: {selectBreedId.outputs.selected_breed_id}
+    output:
+      mappings:
+        breed_details: response.data.attributes
+
+requests:
+  listBreedsRequest:
+    format: OpenAPI
+    specification:
+      openapi: "3.0.1"
+      info:
+        title: "API V2"
+        version: "1.0.0"
+        description: "Dog API providing information on breeds."
+      servers:
+        - url: "https://dogapi.dog/api/v2"
+      paths:
+        /breeds:
+          get:
+            summary: "list breeds"
+            responses:
+              '200':
+                description: "successful"
+
+  getBreedRequest:
+    format: OpenAPI
+    specification:
+      openapi: "3.0.1"
+      info:
+        title: "API V2"
+        version: "1.0.0"
+        description: "Dog API providing information on breeds."
+      servers:
+        - url: "https://dogapi.dog/api/v2"
+      paths:
+        /breeds/{id}:
+          get:
+            summary: "get breed"
+            parameters:
+              - name: id
+                in: path
+                required: true
+                schema:
+                  type: string
+            responses:
+              '200':
+                description: "successful"
+
+flow:
+  steps:
+    - task: listBreeds
+    - task: selectBreedId
+    - task: getBreedDetails
+
+examples:
+  - description: "Get information about the Caucasian Shepherd Dog by name"
+    inputs:
+      breed_name: "Caucasian Shepherd Dog"
+    expected_outputs:
+      breed_details:
+        name: "Caucasian Shepherd Dog"
+        description: "The Caucasian Shepherd dog is a serious guardian breed..."
+        min_life: 15
+        max_life: 20
+        hypoallergenic: false
