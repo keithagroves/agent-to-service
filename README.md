@@ -2,11 +2,11 @@
 
 ![Status: Alpha](https://img.shields.io/badge/Status-Alpha-yellow) ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) [![Discord](https://img.shields.io/badge/Discord-A2S_PROTOCOL-blue?logo=discord&logoColor=white)](https://discord.gg/mMfxvMtHyS)
 
-The **Agent-to-Service Protocol (A2S)** provides a standardized framework for AI agents to dynamically discover, understand, and interact with arbitrary services at runtime. It enables agents to go beyond their pre-programmed functionalities by discovering new capabilities, orchestrating external APIs, and handling complex workflows—all while ensuring structured, auditable, and secure operations.
+The **Agent-to-Service Protocol (A2S)** provides a standardized framework for AI agents to dynamically discover, understand, and interact with services at runtime. It enables agents to transcend their initial programming by discovering new capabilities, orchestrating external APIs, and handling complex workflows—while ensuring structured, auditable, and secure operations.
 
 ## Overview
 
-A2S is designed for scenarios where AI agents must operate in dynamic environments, discovering and invoking new services as they become available. By defining capabilities, parameters, tasks, and flow controls, A2S standardizes how agents interface with services and compose functionalities. 
+A2S is designed for scenarios where AI agents operate in dynamic environments, discovering and invoking new services as they emerge. By defining capabilities, parameters, tasks, and flows, A2S standardizes how agents interface with services and compose functionalities.
 
 **Example Scenario:**
 
@@ -38,19 +38,19 @@ In this example, the agent dynamically identifies relevant capabilities, execute
 
 ## Core Features
 
-- **Agent-First Design:** Tailored for AI agents to discover and orchestrate capabilities programmatically.
-- **Dynamic Discovery:** Agents can query registries for new capabilities and incorporate them at runtime.
-- **Atomic Operations:** Each API operation is modeled as a discrete, auditable, and reliable request.
-- **Secure Parameter Management:** Strong controls over input/output parameters, data lifecycles, and credential handling.
-- **Flow Control:** Built-in constructs for conditional logic, looping, parallelism, and error handling.
-- **Auditing & Permissions:** Integrated auditing, security levels, and permissions to ensure trust and compliance.
-- **Composability:** Simple atomic capabilities can be composed into aggregate capabilities for complex workflows.
+- **Agent-First Design:** Specifically tailored for AI agents to discover and orchestrate capabilities programmatically.
+- **Dynamic Discovery:** Agents can query registries at runtime to find and incorporate new capabilities.
+- **Atomic Operations:** Each API operation is represented as a discrete, auditable, and reliable request.
+- **Secure Parameter Management:** Provides strong controls over inputs, outputs, data lifecycles, and credential handling.
+- **Flow Control:** Built-in constructs support conditional logic, looping, parallelism, and error handling.
+- **Auditing & Permissions:** Integrated audit trails, security levels, and permission management for trustworthy operations.
+- **Composability:** Simple atomic capabilities can be combined into aggregate capabilities for more complex workflows.
 
 ## Core Concepts
 
 ### Capabilities
 
-A **capability** represents a unit of functionality—either a simple (atomic) operation or a complex (aggregate) workflow. Capabilities are defined in YAML or JSON metadata, which includes versioning, authorship, security posture, and dependencies.
+A **capability** is a unit of functionality—either a simple (atomic) operation or a complex (aggregate) workflow. Capabilities are defined in YAML or JSON, including versioning, authorship, security posture, and dependencies.
 
 **Example Capability Metadata:**
 
@@ -61,10 +61,10 @@ description: "Handles weather updates"
 version: 1.0.0
 authors:
   - name: "Author Name"
-type: "aggregate"     # aggregate or atomic
-checksum: "<sha256>"  # SHA-256 integrity check
-last_updated: Date
-tags: []
+type: "aggregate"     # can be 'aggregate' or 'atomic'
+checksum: "<sha256>"  # SHA-256 integrity hash
+last_updated: 2024-12-10
+tags: ["weather", "social"]
 security:
   audit:
     status: "audited" # audited | unaudited | in-progress
@@ -81,18 +81,18 @@ security:
 ### Capability Types
 
 **Atomic Capabilities:**  
-- Self-contained, minimal functionality.  
-- No external imports.  
-- Serve as building blocks, e.g., making a single API request.
+- Self-contained and minimal in scope.
+- No external imports.
+- Ideal for a single API call or a simple, isolated action.
 
 **Aggregate Capabilities:**  
-- Can import and orchestrate multiple atomic capabilities.  
-- Cannot import other aggregates (to avoid overly complex dependency chains).  
-- Ideal for multi-step workflows, e.g., retrieving data and then transforming or posting it elsewhere.
+- Can import and orchestrate multiple atomic capabilities.
+- Cannot import other aggregates to prevent complex nesting.
+- Suitable for multi-step workflows or orchestrations.
 
 ### Dependencies and Registries
 
-Capabilities declare their dependencies and their source registries. Agents can query registries to find and integrate capabilities:
+Capabilities can define dependencies and reference external registries:
 
 ```yaml
 registries:
@@ -108,50 +108,50 @@ dependencies:
     registry: registries.custom
 ```
 
+Agents can query these registries (via semantic search or other methods) to discover and integrate new capabilities dynamically.
 
 ### Parameter Management
 
-A2S strictly defines parameter handling to ensure data integrity, clarity, and security:
+A2S provides structured, lifecycle-aware parameter management:
 
-**Parameter Scope and Lifecycle:**
-- **Inputs/Outputs at Capability Level:** Required at capability start (inputs) and produced at completion (outputs).
-- **Inputs/Outputs at Task Level:** Required and produced at each step within a capability.
+**Parameter Scopes:**
+- **Inputs/Outputs (Capability Level):** Inputs are supplied at the start; outputs are produced upon completion.
+- **Inputs/Outputs (Task Level):** Each task can have its own required inputs and produce its own outputs.
 - **Data Lifecycles:**  
   - **Persistent:** Data persists beyond capability execution.  
-  - **Session:** Data available for the user's ongoing session.  
-  - **Capability:** Data valid only during capability execution.  
-  - **Task:** Data scoped solely to a single task.
+  - **Session:** Data is available during the user's session.  
+  - **Capability:** Data is scoped to capability execution.  
+  - **Task:** Data is scoped to a single task execution.
 
 ### Parameter References
 
-A2S supports multiple referencing modes to streamline data access:
+A2S supports various referencing modes to access and manipulate data:
 
-1. **Schema References:**  
-   Link directly to schema definitions:
+1. **Schema References:** Link directly to definitions within schemas.
+
    ```yaml
    inputs:
      user_type:
        $ref: "#/schemas/UserType"
    ```
 
-2. **Value References:**  
-   Dynamically reference outputs of other tasks, inputs, or service credentials:
-   ```yaml
+2. **Value References:** Dynamically reference outputs of previous tasks, inputs, or stored credentials.
+
+```yaml
    mappings:
      temperature: {getWeather.outputs.temperature}
      userId: {inputs.user.id}
      token: {services.weather-api.auth.token}
      version: {capability.version}
    ```
+3. **String Templates:** Interpolate data within string parameters.
 
-3. **String Templates:**  
-   Inline references within strings:
+
    ```yaml
    message: "Current weather in {inputs.city}: {getWeather.outputs.conditions}"
    ```
+4. **Conditional References:** Base execution paths on dynamic conditions.
 
-4. **Conditional References:**  
-   Control flow based on dynamic conditions:
    ```yaml
    condition:
      if: {decideToPost.outputs.shouldPost}
@@ -159,7 +159,7 @@ A2S supports multiple referencing modes to streamline data access:
 
 ### Service Integration
 
-Define how capabilities interact with external APIs, including credential management and rate limits:
+Define external services and their credentials, rate limits, and other properties:
 
 ```yaml
 services:
@@ -178,13 +178,16 @@ services:
       burst: 20
 ```
 
-**Suggestions for Improvement:**  
-- Standardize authentication methods (OAuth2, API keys, etc.) through schemas.
-- Introduce optional fields for Service-Level Agreements (SLAs) or expected latency bounds.
 
 ### Flow Control
 
-A2S supports a rich set of flow control constructs for orchestrating tasks:
+A2S supports advanced flow control patterns:
+
+- **Sequential Steps:** Execute tasks in sequence.
+- **Conditionals:** Branch logic based on conditions.
+- **Loops:** Repeat steps until conditions are met.
+- **Parallel Execution:** Run multiple tasks concurrently.
+- **Error Handling:** Implement try/catch blocks and fallback actions.
 
 ```yaml
 flow:
@@ -224,7 +227,7 @@ flow:
 
 ### Tasks
 
-Tasks are fundamental units of work within a capability. They can involve making requests, evaluating conditions, composing prompts, or invoking other capabilities.
+Tasks are the atomic units of work. A single capability can have multiple tasks, such as requesting data from an API, running an agent decision, or performing conditional checks.
 
 **Example Task:**
 
@@ -242,51 +245,29 @@ tasks:
       mappings:
         temperature: response.temperature
         conditions: response.conditions
-    error:
-      mappings:
-        message: error.message
-        code: error.code
 ```
-
-**Suggestions for Improvement:**  
-- Introduce standardized error codes and categories for uniform handling.
-- Consider task annotations for debugging and tracing.
 
 ### A2S Registry
 
-A2S registries are centralized repositories that store and organize capabilities. Agents can query these registries using semantic search, enabling them to find capabilities that match user intentions or required functionalities.
+A2S registries store capabilities and allow agents to discover them using semantic queries. Agents break down user queries into capabilities and execute them to fulfill requests.
 
-**Visual Overview:**
+**Example:**
 
 ```
-User Query
-    ↓
-Agent → Registry (semantic search) → Capabilities
-    ↓
-       Execute best-matching capabilities to fulfill the request
+User Query: "Find a capability that retrieves weather and posts tweets."
+Agent → Registry → Finds WeatherUpdateCapability → Executes Tasks
 ```
-
-**Suggestions for Improvement:**  
-- Offer advanced search filters (e.g., domain, author, security level).
-- Implement rating or reliability scores for capabilities.
 
 ## Best Practices
 
-- **Security & Auditing:**  
-  Always specify audit status, required permissions, and ensure data is securely managed.
-  
-- **Service Integration:**  
-  One distinct service per integration. Document credentials, rate limits, and authentication explicitly.
-  
-- **Error Handling:**  
-  Define fallback strategies, provide meaningful error messages, and handle timeouts, rate limits, and unexpected responses gracefully.
-  
-- **Capability Design:**  
-  Keep atomic capabilities focused. Use aggregates to combine multiple steps. Validate checksums and dependencies rigorously.
+- **Security & Auditing:** Always define audit status, required permissions, and follow data lifecycle rules.
+- **Service Integration:** Keep service definitions clear and secure. Document authentication and rate limits.
+- **Error Handling:** Provide meaningful error messages, implement fallback strategies, and handle common error conditions gracefully.
+- **Capability Design:** Keep atomic capabilities small and reusable. Use aggregates for complex orchestration. Verify checksums and handle dependencies carefully.
 
 ## SDK Usage
 
-A2S provides SDKs for simplifying integration:
+A2S SDKs simplify integration, enabling easy discovery and execution of capabilities:
 
 ```typescript
 import { A2SRegistry, A2SAgent } from '@a2s/core';
@@ -294,8 +275,10 @@ import { A2SRegistry, A2SAgent } from '@a2s/core';
 const registry = new A2SRegistry();
 const agent = new A2SAgent();
 
-const capabilities = registry.findCapability("User query");
+// Query the registry for capabilities
+const capabilities = registry.findCapability("Check weather and tweet");
 
+// Execute a capability
 async function executeCapability(capability) {
   if (!agent.verifyChecksum(capability)) return;
   
@@ -310,4 +293,3 @@ async function executeCapability(capability) {
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
