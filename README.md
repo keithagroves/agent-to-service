@@ -251,6 +251,8 @@ User Query: "Find a capability that retrieves weather and posts tweets."
 Agent → Registry → Finds WeatherUpdateCapability → Executes Tasks
 ```
 
+![A2S Flow](diagram.png)
+
 ## Best Practices
 
 - **Security & Auditing:** Always specify audit status, required permissions, and adhere to defined data lifecycles.
