@@ -216,6 +216,18 @@ flow:
         onError:
           - RATE_LIMIT
           - TIMEOUT
+
+    # Override Tasks Inputs/Ouputs
+    - task: getWeather
+      override_mappings:
+        input:
+          location: {custom_storage.custom_vars1}
+```
+
+```yaml
+custom_storage:
+  custom_vars1:
+
 ```
 
 ### Tasks
