@@ -252,6 +252,18 @@ tasks:
         conditions: response.conditions
 ```
 
+### Tasks Types
+
+Tasks come in several types:
+
+- `request`: Execute an API operation.
+- `agent_decision`: Enable agent decision-making.
+- `condition`: Implement conditional branching.
+- `capability`: Execute an imported capability.
+- `prompt`:  load prompt for agent.
+
+More tasks can be added in future.
+
 ### A2S Registry
 
 A2S registries enable semantic search and retrieval of capabilities. Agents can find and execute capabilities that match user intentions.
