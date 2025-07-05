@@ -1,5 +1,6 @@
-Deprecated
-This repository has been deprecated. Please refer to the new repository at: https://github.com/EnactProtocol/specification
+# Deprecated
+This repository has been deprecated. This was my initial stab at creating **Enact** which I started in Nov 2024. Please refer to the new repository at: [ENACT SPEC](https://github.com/EnactProtocol/specification)
+
 
 # Agent-to-Service Protocol (A2S)
 
